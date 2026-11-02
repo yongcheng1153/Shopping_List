@@ -1,0 +1,2278 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#d29a72">
+<title>購物清單</title>
+<style>
+/* =========================================================
+   購物清單模組（奶茶色版）— 樣式皆以 sl- 前綴，包在 #sl-app 內
+   嫁接時：複製 <style>、<div id="sl-app">、<script> 三段即可
+   ========================================================= */
+@import url('https://fonts.googleapis.com/css2?family=Huninn&family=Zen+Maru+Gothic:wght@500;700&display=swap');
+
+html, body { margin: 0; background: #fbf1e7; }
+
+#sl-app {
+  --bg: #fbf1e7;            /* 奶油底 */
+  --card: #fffdfa;
+  --text: #4a3326;          /* 深可可 */
+  --sub: #a88b76;
+  --line: rgba(139, 90, 60, .13);
+  --fill: #f5e4d4;
+  --border: #edd5c1;
+  --accent: #8b5a3c;        /* 焦糖咖啡 */
+  --accent-2: #c88a5e;      /* 奶茶 */
+  --chip: #fbe2cd;          /* 蜜桃奶茶 */
+  --chip-text: #a1613a;
+  --danger: #c4523a;
+  --hero: linear-gradient(135deg, #d29a72 0%, #e3b48f 55%, #ecc9aa 100%);
+  --shadow: 0 6px 18px rgba(139, 90, 60, .08);
+  font-family: "Huninn", "Zen Maru Gothic", "PingFang TC", -apple-system, sans-serif;
+  color: var(--text);
+  background: var(--bg);
+  min-height: 100dvh;
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  accent-color: var(--accent);
+  color-scheme: light; /* 固定淺色，不跟隨系統深色模式 */
+  overflow-x: clip;    /* 防止畫面左右滑動 */
+}
+#sl-app *, #sl-app *::before, #sl-app *::after { box-sizing: border-box; }
+:where(#sl-app) button {
+  font: inherit; color: inherit; background: none; border: 0; padding: 0; margin: 0;
+  cursor: pointer; touch-action: manipulation; -webkit-user-select: none; user-select: none;
+}
+:where(#sl-app) input, :where(#sl-app) textarea { font: inherit; font-size: 16px; color: inherit; }
+#sl-app [hidden] { display: none !important; }
+
+/* ---------- 頂部橫幅 ---------- */
+.sl-hero {
+  position: relative; overflow: hidden;
+  padding: calc(env(safe-area-inset-top) + 18px) 20px 22px;
+  background: var(--hero); color: #4a2e1f;
+}
+.sl-hero-deco { position: absolute; right: -18px; top: 6px; opacity: .16; color: #fff; pointer-events: none; }
+.sl-tag {
+  display: inline-flex; align-items: center; gap: 6px; height: 30px; padding: 0 14px;
+  border-radius: 999px; background: rgba(255, 250, 245, .88); color: var(--accent);
+  font-size: 12px; letter-spacing: .08em; font-family: "Zen Maru Gothic", "Huninn", sans-serif; font-weight: 700;
+}
+.sl-hero-row { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.sl-hero h1 { margin: 0; font-size: 30px; font-weight: 700; letter-spacing: .02em; line-height: 1.2; }
+.sl-summary { font-size: 13px; margin-top: 6px; opacity: .78; }
+.sl-btn-pill {
+  display: inline-flex; align-items: center; gap: 4px; flex: none;
+  height: 40px; padding: 0 16px; border-radius: 999px;
+  background: var(--accent); color: #fff8f1; font-size: 15px;
+  box-shadow: 0 4px 12px rgba(110, 66, 40, .25);
+}
+.sl-btn-pill:active { transform: scale(.96); }
+
+/* ---------- 類別卡片 ---------- */
+.sl-list {
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 18px 16px calc(env(safe-area-inset-bottom) + 120px); /* 預留 Tab Bar 空間 */
+}
+.sl-cat { background: var(--card); border-radius: 20px; overflow: hidden; box-shadow: var(--shadow); }
+.sl-cat-head { display: flex; align-items: center; padding: 6px 6px 2px 16px; min-height: 56px; }
+.sl-cat-toggle { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; min-height: 46px; text-align: left; }
+.sl-cat-dot {
+  flex: none; width: 30px; height: 30px; border-radius: 50%;
+  display: grid; place-items: center; background: var(--chip); color: var(--chip-text);
+}
+.sl-chev { flex: none; color: var(--sub); transition: transform .22s ease; }
+.sl-cat.collapsed .sl-chev { transform: rotate(-90deg); }
+.sl-cat-name { font-size: 18px; font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-count {
+  flex: none; font-size: 13px; color: var(--chip-text); background: var(--chip);
+  padding: 3px 10px; border-radius: 999px; font-variant-numeric: tabular-nums;
+}
+.sl-cat.all-done .sl-count { background: var(--accent); color: #fff8f1; }
+.sl-icon-btn { flex: none; width: 44px; height: 44px; display: grid; place-items: center; border-radius: 14px; color: var(--sub); }
+.sl-icon-btn:active { background: var(--fill); }
+.sl-progress { height: 5px; margin: 4px 16px 6px; border-radius: 5px; background: var(--fill); overflow: hidden; }
+.sl-progress i { display: block; height: 100%; width: 0; border-radius: 5px; background: linear-gradient(90deg, var(--accent-2), var(--accent)); transition: width .35s ease; }
+.sl-cat.collapsed .sl-cat-body { display: none; }
+/* 比價／規格比較群組收合：只留標題與冠軍摘要 */
+.sl-group.collapsed .sl-members, .sl-group.collapsed .sl-g-empty,
+.sl-sgroup.collapsed .sl-specs, .sl-sgroup.collapsed .sl-g-empty { display: none; }
+.sl-group.collapsed, .sl-sgroup.collapsed { padding-bottom: 6px; }
+.sl-group .sl-cat-toggle, .sl-sgroup .sl-cat-toggle { cursor: pointer; }
+.sl-cat.collapsed .sl-progress { margin-bottom: 14px; }
+
+/* ---------- 品項（格狀縮圖，像資料夾大圖示） ---------- */
+.sl-items {
+  list-style: none; margin: 0; padding: 10px 12px 4px;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 10px;
+}
+.sl-items:empty { display: none; }
+.sl-item { position: relative; min-width: 0; }
+.sl-item-main {
+  display: flex; flex-direction: column; align-items: center; gap: 7px;
+  width: 100%; text-align: center;
+}
+.sl-item-main:active .sl-tile { transform: scale(.95); }
+.sl-tile {
+  position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 1 / 1;
+  border-radius: 18px; overflow: hidden; background: var(--fill);
+  border: 2px solid var(--chip); transition: transform .15s, opacity .25s, filter .25s;
+}
+.sl-tile img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sl-tile-empty { color: var(--accent-2); opacity: .75; }
+.sl-badge {
+  position: absolute; right: 6px; top: 6px; display: inline-flex; align-items: center; gap: 3px;
+  padding: 2px 7px; border-radius: 999px; font-size: 11px;
+  background: rgba(74, 51, 38, .72); color: #fff6ee;
+}
+.sl-item-name {
+  display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden;
+  width: 100%; padding: 0 2px; font-size: 14px; line-height: 1.35; word-break: break-word;
+  transition: color .2s;
+}
+.sl-item.done .sl-tile { opacity: .5; filter: grayscale(.6); }
+.sl-item.done .sl-item-name { color: var(--sub); text-decoration: line-through; text-decoration-color: var(--accent-2); }
+
+/* 縮圖上的操作層（左上：完成、右下：比價） */
+.sl-tile-ov { position: absolute; top: 0; left: 0; width: 100%; aspect-ratio: 1 / 1; z-index: 2; pointer-events: none; }
+.sl-tile-ov > * { pointer-events: auto; }
+.sl-tile-tools { position: absolute; right: 0; bottom: 0; display: flex; }
+.sl-cmp-btn { width: 38px; height: 44px; display: grid; place-items: center; }
+.sl-cmp-btn:last-child { width: 42px; padding-right: 4px; }
+.sl-cmp-btn > span {
+  width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center;
+  background: rgba(255, 250, 245, .9); color: var(--accent); border: 2px solid #fff;
+  box-shadow: 0 2px 6px rgba(74, 51, 38, .22); transition: background .2s, color .2s, transform .15s;
+}
+.sl-cmp-btn:active > span { transform: scale(.85); }
+.sl-cmp-btn.on > span { background: var(--accent-2); color: #fff; }
+.sl-item-tags { display: flex; flex-wrap: wrap; justify-content: center; gap: 4px; margin-top: -3px; }
+.sl-item-spec { background: var(--fill); color: var(--accent); }
+.sl-item-price { font-size: 12px; padding: 1px 8px; border-radius: 999px;
+  background: var(--chip); color: var(--chip-text); font-variant-numeric: tabular-nums;
+}
+.sl-item.done .sl-item-price { opacity: .5; }
+
+/* 核取方塊：疊在縮圖左上角 */
+.sl-check {
+  position: absolute; top: 0; left: 0; z-index: 2; width: 46px; height: 46px;
+  display: grid; place-items: center; cursor: pointer;
+}
+.sl-check input { position: absolute; opacity: 0; width: 1px; height: 1px; pointer-events: none; }
+.sl-box {
+  width: 26px; height: 26px; border-radius: 9px;
+  border: 2px solid rgba(255, 255, 255, .95); background: rgba(255, 250, 245, .85);
+  box-shadow: 0 2px 6px rgba(74, 51, 38, .22);
+  display: grid; place-items: center; transition: background .2s, border-color .2s, transform .15s;
+}
+.sl-check:active .sl-box { transform: scale(.85); }
+.sl-box svg { opacity: 0; transform: scale(.4) rotate(-12deg); transition: opacity .18s, transform .25s cubic-bezier(.3,1.7,.5,1); }
+.sl-item.done .sl-box { background: var(--accent); border-color: #fff; }
+.sl-item.done .sl-box svg { opacity: 1; transform: none; }
+
+.sl-add {
+  display: flex; align-items: center; margin: 14px 12px 12px; padding: 0 4px 0 12px;
+  border-radius: 16px; background: var(--bg); border: 1.5px dashed var(--border);
+}
+.sl-add:focus-within { border-style: solid; border-color: var(--accent-2); }
+.sl-add-icon { flex: none; width: 32px; color: var(--accent-2); display: grid; place-items: start; }
+.sl-add input { flex: 1; min-width: 0; height: 48px; border: 0; background: none; outline: none; padding: 0; }
+.sl-add input::placeholder { color: var(--sub); }
+.sl-add button { flex: none; height: 36px; padding: 0 14px; border-radius: 999px; background: var(--accent); color: #fff8f1; font-size: 14px; }
+.sl-add input:placeholder-shown + button { opacity: 0; pointer-events: none; }
+
+.sl-empty { text-align: center; color: var(--sub); padding: 56px 24px; }
+.sl-empty svg { color: var(--accent-2); opacity: .7; }
+.sl-empty h2 { margin: 14px 0 6px; font-size: 20px; color: var(--text); font-weight: 700; }
+.sl-empty p { margin: 0 0 22px; font-size: 15px; line-height: 1.6; }
+
+/* ---------- 詳細頁 ---------- */
+.sl-detail {
+  position: fixed; inset: 0; z-index: 20; display: flex; flex-direction: column;
+  background: var(--bg); transform: translateX(100%); visibility: hidden;
+  transition: transform .34s cubic-bezier(.32,.72,0,1), visibility 0s linear .34s;
+}
+.sl-detail.open { transform: none; visibility: visible; transition: transform .34s cubic-bezier(.32,.72,0,1), visibility 0s; }
+.sl-d-top {
+  display: grid; grid-template-columns: 1fr auto 1fr; align-items: center;
+  padding: calc(env(safe-area-inset-top) + 4px) 8px 4px; min-height: 52px;
+  background: color-mix(in srgb, var(--bg) 85%, transparent);
+  -webkit-backdrop-filter: blur(18px); backdrop-filter: blur(18px);
+}
+.sl-back { justify-self: start; display: flex; align-items: center; height: 44px; padding: 0 10px 0 2px; color: var(--accent); font-size: 17px; }
+.sl-d-cat {
+  font-size: 14px; max-width: 52vw; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  padding: 5px 14px; border-radius: 999px; background: var(--chip); color: var(--chip-text);
+}
+.sl-d-scroll {
+  flex: 1; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  padding: 8px 16px calc(env(safe-area-inset-bottom) + 32px);
+}
+.sl-carousel {
+  display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none;
+  width: 100%; height: clamp(180px, 58vw, 280px); border-radius: 22px; background: var(--fill);
+  border: 4px solid var(--card); box-shadow: var(--shadow);
+}
+.sl-carousel::-webkit-scrollbar, .sl-v-track::-webkit-scrollbar { display: none; }
+.sl-carousel img { flex: none; width: 100%; height: 100%; object-fit: contain; scroll-snap-align: center; scroll-snap-stop: always; cursor: zoom-in; }
+.sl-dots { display: flex; justify-content: center; gap: 6px; margin-top: 12px; }
+.sl-dots i { width: 7px; height: 7px; border-radius: 50%; background: var(--border); transition: all .2s; }
+.sl-dots i.on { width: 18px; border-radius: 4px; background: var(--accent); }
+.sl-photo-bar { display: flex; justify-content: space-between; align-items: center; font-size: 14px; color: var(--sub); padding: 0 4px; }
+.sl-link { display: inline-flex; align-items: center; gap: 4px; min-height: 44px; color: var(--accent); font-size: 15px; }
+.sl-photo-empty {
+  width: 100%; height: 96px; border-radius: 20px;
+  border: 2px dashed var(--border); background: var(--card);
+  display: flex; align-items: center; justify-content: center; gap: 14px;
+  color: var(--accent-2);
+}
+.sl-photo-empty > span { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.sl-photo-empty:active { background: var(--fill); }
+.sl-photo-empty strong { font-size: 17px; color: var(--accent); font-weight: 700; }
+.sl-photo-empty small { font-size: 13px; color: var(--sub); }
+.sl-d-name {
+  display: block; width: 100%; border: 0; background: none; outline: none; padding: 0;
+  font-size: 26px !important; font-weight: 700; margin: 20px 4px 14px;
+}
+.sl-d-row {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--card); border-radius: 18px; padding: 0 16px; min-height: 54px; font-size: 17px;
+  box-shadow: var(--shadow);
+}
+.sl-d-row input { transform: scale(1.1); }
+.sl-d-label { display: flex; align-items: center; gap: 6px; font-size: 14px; color: var(--chip-text); margin: 24px 6px 8px; }
+.sl-d-label::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--accent-2); }
+.sl-d-note {
+  display: block; width: 100%; min-height: 150px; resize: none; outline: none;
+  background: var(--card); border: 1.5px solid transparent; border-radius: 18px; padding: 14px 16px; line-height: 1.65;
+  box-shadow: var(--shadow);
+}
+.sl-d-note:focus { border-color: var(--accent-2); }
+.sl-d-note::placeholder { color: var(--sub); }
+.sl-d-delete {
+  display: block; width: 100%; margin-top: 30px; min-height: 52px; border-radius: 18px;
+  background: transparent; border: 1.5px solid var(--border); color: var(--danger); font-size: 16px;
+}
+.sl-d-delete:active { background: var(--fill); }
+
+/* ---------- 全螢幕看圖 ---------- */
+.sl-viewer {
+  position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column;
+  background: #1a120d; color: #fbe9da; opacity: 0; visibility: hidden;
+  transition: opacity .22s, visibility 0s linear .22s;
+}
+.sl-viewer.open { opacity: 1; visibility: visible; transition: opacity .22s, visibility 0s; }
+.sl-v-top, .sl-v-bottom { display: flex; align-items: center; justify-content: space-between; padding: 0 16px; }
+.sl-v-top { padding-top: calc(env(safe-area-inset-top) + 4px); min-height: 52px; }
+.sl-v-bottom { padding-bottom: calc(env(safe-area-inset-bottom) + 6px); min-height: 60px; }
+.sl-v-top button, .sl-v-bottom button { min-height: 44px; font-size: 17px; color: #f0c39f; }
+.sl-v-bottom .danger { color: #ff8a73; }
+.sl-v-count { font-size: 15px; opacity: .8; font-variant-numeric: tabular-nums; }
+.sl-v-track { flex: 1; min-height: 0; display: flex; overflow-x: auto; scroll-snap-type: x mandatory; scrollbar-width: none; }
+.sl-v-slide { flex: none; width: 100%; height: 100%; display: grid; place-items: center; scroll-snap-align: center; scroll-snap-stop: always; }
+.sl-v-slide img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+/* ---------- 對話框 / 選單 / 提示 ---------- */
+.sl-overlay {
+  position: fixed; inset: 0; z-index: 60; background: rgba(60, 36, 22, .38);
+  opacity: 0; visibility: hidden; transition: opacity .22s, visibility 0s linear .22s;
+}
+.sl-overlay.open { opacity: 1; visibility: visible; transition: opacity .22s, visibility 0s; }
+.sl-dialog {
+  position: absolute; left: 50%; top: calc(env(safe-area-inset-top) + 13vh);
+  width: min(320px, calc(100% - 48px)); transform: translateX(-50%) scale(.92);
+  background: var(--card); border-radius: 24px; padding: 22px 18px 10px; text-align: center;
+  transition: transform .25s cubic-bezier(.3,1.4,.5,1);
+}
+.sl-overlay.open .sl-dialog { transform: translateX(-50%) scale(1); }
+.sl-dialog h3 { margin: 0 0 6px; font-size: 18px; font-weight: 700; }
+.sl-dialog p { margin: 0 0 4px; font-size: 14px; color: var(--sub); line-height: 1.55; }
+.sl-field {
+  width: 100%; height: 46px; margin: 12px 0 4px; padding: 0 14px;
+  border: 1.5px solid var(--border); border-radius: 14px; background: var(--bg); outline: none;
+}
+.sl-field:focus { border-color: var(--accent-2); }
+.sl-dialog-btns { display: flex; gap: 10px; margin-top: 14px; padding-bottom: 6px; }
+.sl-dialog-btns button { flex: 1; min-height: 46px; border-radius: 999px; font-size: 16px; background: var(--fill); color: var(--text); }
+.sl-dialog-btns .strong { background: var(--accent); color: #fff8f1; }
+.sl-dialog-btns .danger { background: var(--danger); color: #fff; }
+.sl-sheet {
+  position: absolute; left: 10px; right: 10px; bottom: calc(env(safe-area-inset-bottom) + 10px);
+  transform: translateY(115%); transition: transform .3s cubic-bezier(.32,.72,0,1);
+}
+.sl-overlay.open .sl-sheet { transform: none; }
+.sl-sheet-group { background: var(--card); border-radius: 22px; overflow: hidden; }
+.sl-sheet-title { padding: 14px 16px; text-align: center; font-size: 13px; color: var(--chip-text); background: var(--chip); }
+.sl-sheet button { display: block; width: 100%; min-height: 54px; font-size: 18px; color: var(--accent); border-top: 1px solid var(--line); }
+.sl-sheet-title + button { border-top: 0; }
+.sl-sheet button:active { background: var(--fill); }
+.sl-sheet button.danger { color: var(--danger); }
+.sl-sheet button:disabled { opacity: .3; }
+.sl-sheet .sl-cancel { margin-top: 10px; border: 0; border-radius: 22px; background: var(--card); color: var(--text); }
+/* ---------- 比價：對話框 ---------- */
+.sl-dialog.sl-wide { width: min(360px, calc(100% - 28px)); text-align: left; top: calc(env(safe-area-inset-top) + 7vh); max-height: calc(100dvh - env(safe-area-inset-top) - 9vh); overflow-y: auto; }
+.sl-dialog.sl-wide h3, .sl-dialog.sl-wide > p { text-align: center; }
+.sl-dialog-btns button:disabled { opacity: .4; }
+.sl-opt-list { display: flex; flex-direction: column; gap: 6px; max-height: 34vh; overflow-y: auto; margin: 14px 0 10px; }
+.sl-opt {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 48px; padding: 0 14px;
+  border-radius: 14px; background: var(--bg); text-align: left; transition: background .2s;
+}
+.sl-opt.on { background: var(--chip); color: var(--chip-text); }
+.sl-radio { flex: none; width: 20px; height: 20px; border-radius: 50%; border: 2px solid var(--border); background: var(--card); transition: .2s; }
+.sl-opt.on .sl-radio { border: 6px solid var(--accent); }
+.sl-opt-name { flex: 1; font-size: 16px; }
+.sl-opt-n { font-size: 13px; color: var(--sub); }
+.sl-opt-empty { padding: 14px; text-align: center; font-size: 14px; color: var(--sub); border-radius: 14px; background: var(--bg); list-style: none; }
+.sl-inline { display: flex; gap: 8px; align-items: center; }
+.sl-inline .sl-field { margin: 0; flex: 1; min-width: 0; }
+.sl-mini-btn { flex: none; height: 46px; padding: 0 16px; border-radius: 14px; background: var(--chip); color: var(--accent); font-size: 15px; }
+.sl-mini-btn:active { opacity: .7; }
+.sl-remove-link { display: block; margin: 10px auto 0; min-height: 40px; padding: 0 12px; color: var(--danger); font-size: 14px; }
+
+.sl-pe-head { display: flex; align-items: center; gap: 12px; }
+.sl-pe-thumb, .sl-m-thumb {
+  flex: none; width: 56px; height: 56px; border-radius: 14px; overflow: hidden;
+  display: grid; place-items: center; background: var(--fill); color: var(--accent-2); border: 2px solid var(--chip);
+}
+.sl-pe-thumb img, .sl-m-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.sl-pe-thumb svg, .sl-m-thumb svg { width: 26px; height: 26px; }
+.sl-pe-title { min-width: 0; }
+.sl-dialog .sl-pe-title h3, .sl-dialog .sl-pe-title p { text-align: left; margin: 0; }
+.sl-dialog .sl-pe-title p { margin-top: 2px; }
+.sl-price-list { list-style: none; margin: 14px 0 10px; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.sl-price-row {
+  display: flex; align-items: center; gap: 8px; min-height: 48px; padding: 0 4px 0 14px;
+  border-radius: 14px; background: var(--bg); border: 1.5px solid transparent;
+}
+.sl-price-row.best { background: var(--chip); border-color: var(--accent-2); }
+.sl-pr-store { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-pr-price { font-variant-numeric: tabular-nums; font-weight: 700; color: var(--accent); }
+.sl-pr-del { flex: none; width: 36px; height: 36px; border-radius: 50%; font-size: 20px; color: var(--sub); }
+.sl-pr-del:active { background: var(--fill); }
+.sl-best-tag {
+  flex: none; display: inline-flex; align-items: center; gap: 3px; margin-left: 6px;
+  font-size: 11px; padding: 2px 8px; border-radius: 999px; background: var(--accent); color: #fff8f1; vertical-align: 2px;
+}
+.sl-best-tag svg { width: 11px; height: 11px; }
+.sl-pe-form { display: grid; grid-template-columns: 1fr 92px auto; gap: 8px; }
+.sl-pe-form .sl-field { margin: 0; min-width: 0; }
+
+/* ---------- 比價：分頁 ---------- */
+.sl-g-best {
+  display: flex; align-items: center; gap: 10px; margin: 4px 14px 10px; padding: 10px 14px;
+  border-radius: 16px; background: var(--chip); color: var(--chip-text); font-size: 14px; line-height: 1.4;
+}
+.sl-g-best b { color: var(--text); }
+.sl-g-best small { font-size: 12px; }
+.sl-g-best-ic { flex: none; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; background: var(--accent); color: #fff8f1; }
+.sl-g-best > span:nth-child(2) { flex: 1; min-width: 0; }
+.sl-g-best-p { flex: none; font-size: 18px; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.sl-members { list-style: none; margin: 0; padding: 0 0 8px; }
+.sl-member { position: relative; display: flex; align-items: center; padding-right: 4px; }
+.sl-member + .sl-member::before {
+  content: ""; position: absolute; top: 0; left: 84px; right: 16px; height: 1px;
+  background: repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 11px);
+}
+.sl-member-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 12px; padding: 10px 4px 10px 14px; text-align: left; }
+.sl-member-main:active { opacity: .6; }
+.sl-member.best .sl-m-thumb { border-color: var(--accent); }
+.sl-m-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+.sl-m-name { font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-m-prices { display: flex; flex-wrap: wrap; gap: 4px; }
+.sl-price-chip { font-size: 12px; padding: 2px 8px; border-radius: 999px; background: var(--fill); color: var(--sub); white-space: nowrap; font-variant-numeric: tabular-nums; }
+.sl-price-chip.best { background: var(--chip); color: var(--chip-text); box-shadow: inset 0 0 0 1.5px var(--accent-2); }
+.sl-m-none { font-size: 13px; color: var(--accent-2); }
+.sl-m-low { flex: none; font-weight: 700; color: var(--accent); font-variant-numeric: tabular-nums; }
+.sl-g-empty { margin: 4px 16px 16px; padding: 14px; border-radius: 14px; background: var(--bg); color: var(--sub); font-size: 14px; line-height: 1.6; text-align: center; }
+.sl-inline-ic { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: var(--card); color: var(--accent); vertical-align: -6px; border: 1.5px solid var(--border); }
+.sl-inline-ic svg { width: 12px; height: 12px; }
+
+/* 詳細頁比價列 */
+.sl-d-cmp { width: 100%; margin-top: 10px; gap: 10px; text-align: left; }
+.sl-d-cmp-l { display: flex; align-items: center; gap: 10px; flex: none; }
+.sl-d-cmp .sl-cat-dot { width: 28px; height: 28px; }
+.sl-d-cmp-val { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; color: var(--sub); }
+.sl-d-cmp-val.on { color: var(--chip-text); }
+.sl-d-cmp-val::after { content: " ›"; color: var(--accent-2); }
+
+/* ---------- 規格比較 ---------- */
+.sl-unit-chip {
+  flex: none; height: 30px; padding: 0 12px; margin-right: 2px; border-radius: 999px;
+  font-size: 12px; background: var(--bg); color: var(--chip-text); border: 1.5px dashed var(--border);
+}
+.sl-unit-chip.set { border-style: solid; background: var(--chip); border-color: transparent; }
+.sl-specs { list-style: none; margin: 0; padding: 0 0 8px; }
+.sl-spec-row { position: relative; display: flex; gap: 10px; padding: 12px 8px 12px 14px; }
+.sl-spec-row + .sl-spec-row::before {
+  content: ""; position: absolute; top: 0; left: 14px; right: 16px; height: 1px;
+  background: repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 11px);
+}
+.sl-spec-row .sl-m-thumb { width: 44px; height: 44px; border-radius: 12px; }
+.sl-sp-wrap i { left: 8px !important; }
+.sl-spec-grid .sl-sp-wrap .sl-spec-in { padding-left: 20px; padding-right: 4px; text-align: center; }
+.sl-spec-row.best .sl-m-thumb { border-color: var(--accent); }
+.sl-spec-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
+.sl-spec-top { display: flex; align-items: center; min-height: 44px; }
+.sl-spec-top .sl-m-name { flex: 0 1 auto; min-width: 0; }
+.sl-spec-tag { flex: 1; display: flex; }
+.sl-spec-more { width: 36px; height: 36px; }
+.sl-spec-calc { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, .8fr) auto minmax(0, 1.25fr); align-items: end; gap: 5px; margin-left: -54px; }
+.sl-spec-f, .sl-spec-total { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.sl-spec-f small, .sl-spec-total small { font-size: 11px; color: var(--sub); padding-left: 4px; white-space: nowrap; }
+.sl-spec-in {
+  width: 100%; height: 42px; padding: 0 8px; border-radius: 12px; outline: none; text-align: center;
+  border: 1.5px solid var(--border); background: var(--bg); font-variant-numeric: tabular-nums;
+}
+.sl-spec-in:focus { border-color: var(--accent-2); background: var(--card); }
+.sl-spec-in::placeholder { color: color-mix(in srgb, var(--sub) 55%, transparent); }
+.sl-op { height: 42px; display: grid; place-items: center; color: var(--accent-2); font-size: 16px; }
+.sl-spec-total b {
+  height: 42px; display: flex; align-items: center; justify-content: center; padding: 0 6px; border-radius: 12px;
+  background: var(--chip); color: var(--accent); font-size: 15px; white-space: nowrap; overflow: hidden;
+  font-variant-numeric: tabular-nums; transition: background .2s, color .2s;
+}
+.sl-spec-row.best .sl-spec-total b { background: var(--accent); color: #fff8f1; }
+.sl-cat-label {
+  display: inline-block; margin-right: 6px; padding: 1px 8px; border-radius: 8px; vertical-align: 1px;
+  font-size: 12px; line-height: 1.6; background: var(--fill); color: var(--chip-text);
+}
+.sl-pe-title h3 .sl-cat-label { font-size: 13px; vertical-align: 3px; }
+/* 規格列：每一項的欄位上下對齊 */
+.sl-spec-row { flex-direction: column; gap: 8px; }
+.sl-spec-top { gap: 10px; }
+.sl-spec-top .sl-m-thumb { flex: none; }
+.sl-thumb-btn { padding: 0; cursor: pointer; transition: transform .15s; }
+.sl-thumb-btn:active { transform: scale(.92); }
+.sl-spec-grid {
+  display: grid; align-items: end; gap: 5px;
+  grid-template-columns: minmax(0, 1fr) 12px minmax(0, .8fr) 12px minmax(0, 1.15fr) minmax(0, 1fr);
+}
+.sl-spec-grid .sl-op { font-size: 14px; }
+.sl-spec-grid .sl-spec-total b { font-size: 14px; padding: 0 4px; }
+.sl-spec-grid .sl-sp-field, .sl-spec-grid .sl-sp-linked { margin-left: 3px; }
+.sl-spec-foot { display: flex; justify-content: flex-end; }
+.sl-spec-unitp { display: inline-flex; align-items: center; gap: 8px; font-size: 12px; color: var(--sub); }
+.sl-spec-unitp b {
+  padding: 4px 12px; border-radius: 999px; background: var(--fill); color: var(--chip-text);
+  font-size: 13px; font-variant-numeric: tabular-nums; transition: background .2s, color .2s;
+}
+.sl-spec-row.target-unit .sl-spec-unitp b { background: var(--chip); color: var(--accent); }
+.sl-spec-row.best-value .sl-spec-unitp b { background: var(--accent); color: #fff8f1; }
+.sl-target {
+  position: relative; flex: none; display: inline-flex; align-items: center; margin-left: 4px;
+  color: var(--chip-text);
+}
+.sl-target select {
+  appearance: none; -webkit-appearance: none; height: 30px; padding: 0 24px 0 10px; border-radius: 999px;
+  border: 1.5px solid var(--accent-2); background: var(--card); color: var(--accent);
+  font: inherit; font-size: 13px !important; cursor: pointer; outline: none;
+}
+.sl-target svg { position: absolute; right: 9px; pointer-events: none; }
+.sl-sgroup .sl-cat-name { flex: 0 1 auto; min-width: 3.2em; }
+.sl-sgroup .sl-cat-head { padding-left: 12px; }
+.sl-sgroup .sl-unit-chip { padding: 0 10px; }
+.sl-spec-pricerow { margin-top: 2px; }
+.sl-spec-pricerow > :first-child { grid-column: 1 / 4; }
+.sl-sp-wrap { position: relative; display: block; }
+.sl-sp-wrap i { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-style: normal; font-size: 13px; color: var(--sub); pointer-events: none; }
+.sl-sp-wrap .sl-spec-in { padding-left: 44px; text-align: left; }
+.sl-sp-linked { display: flex; flex-direction: column; gap: 3px; min-width: 0; text-align: left; }
+.sl-sp-linked small { font-size: 11px; color: var(--sub); padding-left: 4px; white-space: nowrap; }
+.sl-sp-linked b {
+  height: 42px; display: flex; align-items: center; gap: 8px; padding: 0 12px; border-radius: 12px;
+  background: var(--card); border: 1.5px solid var(--accent-2); color: var(--accent); font-size: 15px;
+  font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden;
+}
+.sl-sp-linked em { font-style: normal; font-weight: 400; font-size: 12px; color: var(--sub); overflow: hidden; text-overflow: ellipsis; }
+.sl-spec-grid .sl-sp-linked b { justify-content: center; gap: 4px; padding: 0 2px 0 12px; font-size: 14px; position: relative; }
+.sl-spec-grid .sl-sp-linked b i { position: absolute; left: 6px; font-style: normal; font-weight: 400; font-size: 13px; color: var(--sub); }
+.sl-spec-grid .sl-sp-linked b::after { display: none; }
+.sl-sp-linked:not(.is-static) b::after { content: "›"; margin-left: auto; color: var(--accent-2); font-weight: 400; }
+.sl-spec-row.best-value .sl-m-thumb { border-color: var(--accent); }
+.sl-se-hint { margin: 6px 2px 0 !important; font-size: 12px !important; text-align: left !important; }
+.sl-g-best-p.sm { font-size: 14px; text-align: right; line-height: 1.3; }
+
+/* ---------- 規格比較：單位快速選擇 ---------- */
+.sl-uchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.sl-uchips-row { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; margin: 0 -18px; padding: 2px 18px 4px; }
+.sl-uchips-row::-webkit-scrollbar { display: none; }
+.sl-uchip {
+  flex: none; min-width: 44px; height: 36px; padding: 0 12px; border-radius: 999px;
+  background: var(--bg); border: 1.5px solid var(--border); color: var(--text); font-size: 15px;
+  transition: background .15s, color .15s, border-color .15s, transform .12s;
+}
+.sl-uchip:active { transform: scale(.92); }
+.sl-uchip.on { background: var(--accent); border-color: var(--accent); color: #fff8f1; }
+.sl-uchip-add { border-style: dashed; color: var(--chip-text); }
+.sl-ugroup { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; }
+.sl-ugroup + .sl-ugroup { border-top: 1px dashed var(--border); }
+.sl-ulabel { flex: none; width: 34px; padding-top: 8px; font-size: 13px; color: var(--sub); }
+.sl-up-groups { margin-top: 10px; }
+.sl-se-label { margin: 16px 2px 8px; font-size: 13px; color: var(--chip-text); }
+.sl-se-label small { color: var(--sub); font-size: 12px; }
+.sl-se-custom { margin-top: 8px; }
+.sl-se-calc { margin: 16px 0 4px !important; }
+
+/* ---------- 底部 Tab Bar ---------- */
+.sl-tabbar {
+  transition: opacity .2s;
+  position: fixed; z-index: 15; left: 50%; transform: translateX(-50%);
+  bottom: calc(env(safe-area-inset-bottom) + 10px);
+  display: flex; gap: 4px; padding: 6px;
+  width: min(380px, calc(100% - 32px));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--card) 78%, transparent);
+  -webkit-backdrop-filter: saturate(180%) blur(22px); backdrop-filter: saturate(180%) blur(22px);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+  box-shadow: 0 10px 30px rgba(110, 66, 40, .16), 0 1px 3px rgba(110, 66, 40, .08);
+}
+.sl-tab {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px;
+  height: 54px; border-radius: 999px; color: var(--sub); font-size: 11px;
+  transition: background .25s, color .25s;
+}
+.sl-tab svg { transition: transform .25s cubic-bezier(.3,1.6,.5,1); }
+.sl-tab[aria-selected="true"] { background: var(--chip); color: var(--accent); }
+.sl-tab[aria-selected="true"] svg { transform: translateY(-1px) scale(1.06); }
+.sl-tab:active svg { transform: scale(.88); }
+#sl-app.sl-detail-open .sl-tabbar { opacity: 0; pointer-events: none; }
+
+.sl-toast {
+  position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom) + 96px); z-index: 70;
+  transform: translate(-50%, 20px); opacity: 0; pointer-events: none;
+  background: #6e4630; color: #fff4ea; font-size: 15px; padding: 10px 20px; border-radius: 999px;
+  box-shadow: 0 6px 18px rgba(80, 45, 25, .25);
+  transition: opacity .2s, transform .25s; white-space: nowrap;
+}
+.sl-toast.show { opacity: 1; transform: translate(-50%, 0); }
+</style>
+</head>
+<body>
+
+<!-- ===================== 購物清單模組 開始 ===================== -->
+<div id="sl-app">
+  <!-- 分頁 1：購物清單 -->
+  <div class="sl-page" data-page="list">
+  <header class="sl-hero">
+    <svg class="sl-hero-deco" width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6.2"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></svg>
+    <span class="sl-tag">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>SHOPPING LIST
+    </span>
+    <div class="sl-hero-row">
+      <div>
+        <h1>購物清單</h1>
+        <div class="sl-summary"></div>
+      </div>
+      <button class="sl-btn-pill" data-act="add-cat" aria-label="新增類別">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>類別
+      </button>
+    </div>
+  </header>
+
+  <main class="sl-list"></main>
+  </div>
+
+  <!-- 分頁 2：比價 -->
+  <div class="sl-page" data-page="compare" hidden>
+    <header class="sl-hero">
+      <svg class="sl-hero-deco" width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M5 21h14M6 7h12M6 7l-3 7a3 3 0 0 0 6 0zM18 7l-3 7a3 3 0 0 0 6 0z"/></svg>
+      <span class="sl-tag">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>PRICE CHECK
+      </span>
+      <div class="sl-hero-row">
+        <div>
+          <h1>比價</h1>
+          <div class="sl-summary">比較不同店家的價格</div>
+        </div>
+        <button class="sl-btn-pill" data-act="add-group" aria-label="新增比價群組">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>群組
+        </button>
+      </div>
+    </header>
+    <main class="sl-list"></main>
+  </div>
+
+  <!-- 分頁 3：規格比較 -->
+  <div class="sl-page" data-page="spec" hidden>
+    <header class="sl-hero">
+      <svg class="sl-hero-deco" width="150" height="150" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg>
+      <span class="sl-tag">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg>SPEC COMPARE
+      </span>
+      <div class="sl-hero-row">
+        <div>
+          <h1>規格比較</h1>
+          <div class="sl-summary"></div>
+        </div>
+        <button class="sl-btn-pill" data-act="add-spec-group" aria-label="新增群組">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>群組
+        </button>
+      </div>
+    </header>
+    <main class="sl-list"></main>
+  </div>
+
+  <!-- 底部 Tab Bar -->
+  <nav class="sl-tabbar" role="tablist" aria-label="主要分頁">
+    <button class="sl-tab" role="tab" data-tab="list" aria-selected="true">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6h11M9 12h11M9 18h11"/><path d="m3.5 6 1 1 2-2M3.5 12l1 1 2-2M3.5 18l1 1 2-2"/></svg>
+      <span>購物清單</span>
+    </button>
+    <button class="sl-tab" role="tab" data-tab="compare" aria-selected="false">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/></svg>
+      <span>比價</span>
+    </button>
+    <button class="sl-tab" role="tab" data-tab="spec" aria-selected="false">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg>
+      <span>規格比較</span>
+    </button>
+  </nav>
+
+  <!-- 品項詳細頁 -->
+  <section class="sl-detail" aria-hidden="true">
+    <header class="sl-d-top">
+      <button class="sl-back" data-act="back">
+        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>返回
+      </button>
+      <span class="sl-d-cat"></span>
+      <span></span>
+    </header>
+    <div class="sl-d-scroll">
+      <div class="sl-gallery"></div>
+      <input class="sl-d-name" type="text" placeholder="品項名稱" enterkeyhint="done" autocomplete="off">
+      <label class="sl-d-row"><span>已購買</span><input class="sl-d-done" type="checkbox" switch></label>
+      <button type="button" class="sl-d-row sl-d-cmp" data-act="d-compare">
+        <span class="sl-d-cmp-l"><span class="sl-cat-dot"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M7 20h10M5 8h14M5 8l-2.5 6a2.5 2.5 0 0 0 5 0zM19 8l-2.5 6a2.5 2.5 0 0 0 5 0z"/></svg></span>比價</span>
+        <span class="sl-d-cmp-val">未加入</span>
+      </button>
+      <button type="button" class="sl-d-row sl-d-cmp" data-act="d-spec">
+        <span class="sl-d-cmp-l"><span class="sl-cat-dot"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg></span>規格比較</span>
+        <span class="sl-d-cmp-val sl-d-spec-val">未加入</span>
+      </button>
+      <div class="sl-d-label">備註</div>
+      <textarea class="sl-d-note" rows="5" placeholder="品牌、規格、數量、價格、哪裡買…"></textarea>
+      <button class="sl-d-delete" data-act="delete-item">刪除此品項</button>
+    </div>
+  </section>
+
+  <!-- 全螢幕看圖 -->
+  <div class="sl-viewer" aria-hidden="true">
+    <div class="sl-v-top">
+      <button data-act="close-viewer">完成</button>
+      <span class="sl-v-count"></span>
+      <span style="width:34px"></span>
+    </div>
+    <div class="sl-v-track"></div>
+    <div class="sl-v-bottom">
+      <button data-act="cover">設為封面</button>
+      <button class="danger" data-act="delete-photo">刪除照片</button>
+    </div>
+  </div>
+
+  <div class="sl-overlay"></div>
+  <div class="sl-toast" role="status"></div>
+  <input class="sl-file" type="file" accept="image/*" multiple hidden>
+</div>
+<!-- ===================== 購物清單模組 結束 ===================== -->
+
+<script>
+(function () {
+  'use strict';
+
+  const root = document.getElementById('sl-app');
+  if (!root) return;
+
+  /* ---------------- 設定 ---------------- */
+  const CONFIG = {
+    dbName: 'sl-shopping-list',   // IndexedDB 名稱（存在手機本機）
+    photoMax: 1600,               // 照片最長邊（px），壓縮以節省空間
+    photoQuality: 0.82,
+    thumbMax: 420,                // 格狀縮圖最長邊（iPhone 3 倍螢幕仍清晰）
+    moveDelay: 380                // 勾選後延遲多久移到最後（ms）
+  };
+
+  /* ---------------- 小工具 ---------------- */
+  const $ = (s, r = root) => r.querySelector(s);
+  const $$ = (s, r = root) => Array.from(r.querySelectorAll(s));
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+  const ICON = {
+    scale: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M7 20h10M5 8h14M5 8l-2.5 6a2.5 2.5 0 0 0 5 0zM19 8l-2.5 6a2.5 2.5 0 0 0 5 0z"/></svg>',
+    ruler: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17 17 3l4 4L7 21z"/><path d="m7 13 2 2M10 10l2 2M13 7l2 2"/></svg>',
+    crown: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 8 4.5 4L12 5l4.5 7L21 8l-2 11H5z"/></svg>',
+    tileEmpty: '<svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/><path d="M10 13h4"/></svg>',
+    photos: '<svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="m21 16-5-5-8 8"/></svg>',
+    bag: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 7h12l-1 13H7z"/><path d="M9 7a3 3 0 0 1 6 0"/></svg>',
+    chev: '<svg class="sl-chev" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>',
+    more: '<svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>',
+    check: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3.6" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12.5 4.5 4.5L19 7.5"/></svg>',
+    right: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg>',
+    plus: '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    plusSm: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>',
+    camera: '<svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l2-3h6l2 3h3a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1z"/><circle cx="12" cy="13" r="3.5"/></svg>',
+    cart: '<svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 4h2l2.4 11.2a1 1 0 0 0 1 .8h9.2a1 1 0 0 0 1-.8L20 8H6.2"/><circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/></svg>'
+  };
+
+  /* ---------------- IndexedDB（本機儲存） ---------------- */
+  let db;
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const r = indexedDB.open(CONFIG.dbName, 3);   // v2：比價群組／v3：規格比較群組
+      r.onupgradeneeded = () => {
+        const d = r.result;
+        const has = n => d.objectStoreNames.contains(n);
+        if (!has('cats')) d.createObjectStore('cats', { keyPath: 'id' });
+        if (!has('items')) d.createObjectStore('items', { keyPath: 'id' }).createIndex('catId', 'catId');
+        if (!has('images')) d.createObjectStore('images', { keyPath: 'id' });
+        if (!has('groups')) d.createObjectStore('groups', { keyPath: 'id' });
+        if (!has('specGroups')) d.createObjectStore('specGroups', { keyPath: 'id' });
+      };
+      r.onsuccess = () => resolve(r.result);
+      r.onerror = () => reject(r.error);
+    });
+  }
+  function run(store, mode, fn) {
+    return new Promise((resolve, reject) => {
+      const t = db.transaction(store, mode);
+      const req = fn(t.objectStore(store));
+      t.oncomplete = () => resolve(req ? req.result : undefined);
+      t.onerror = t.onabort = () => reject(t.error);
+    });
+  }
+  // 若瀏覽器不允許本機資料庫（例如預覽沙盒、私密瀏覽），改用暫存記憶體，功能照常但不會保存
+  const mem = { cats: new Map(), items: new Map(), images: new Map(), groups: new Map(), specGroups: new Map() };
+  const dbAll = s => db ? run(s, 'readonly', o => o.getAll()) : Promise.resolve([...mem[s].values()]);
+  const dbGet = (s, id) => db ? run(s, 'readonly', o => o.get(id)) : Promise.resolve(mem[s].get(id));
+  const dbPut = (s, v) => db ? run(s, 'readwrite', o => o.put(v)).catch(onDbError) : Promise.resolve(void mem[s].set(v.id, v));
+  const dbDel = (s, id) => db ? run(s, 'readwrite', o => o.delete(id)).catch(onDbError) : Promise.resolve(void mem[s].delete(id));
+  function onDbError(err) {
+    console.error(err);
+    toast(err && err.name === 'QuotaExceededError' ? '手機儲存空間不足' : '儲存失敗，請再試一次');
+  }
+
+  /* ---------------- 資料 ---------------- */
+  const state = { cats: [], items: [], groups: [], specGroups: [] };
+  /* 規格比較資料（與比價分開管理）：
+     specGroups: [{ id, name, order, unit, better: 'max' | 'min' }]
+     item.specGroupId → 所屬規格群組
+     item.spec        → { value: 比較數值, qty: 單一數量 } */
+  /* 比價資料：
+     groups: [{ id, name, order }]
+     item.groupId → 所屬比價群組
+     item.prices  → [{ id, store, price, at }]（同一店家只保留一筆，再填會覆蓋） */
+  let currentId = null;          // 詳細頁目前開啟的品項
+  const moveTimers = new Map();  // 每個類別的「延遲移到最後」計時器
+
+  const catById = id => state.cats.find(c => c.id === id);
+  const itemById = id => state.items.find(i => i.id === id);
+  const itemsOfCat = id => state.items.filter(i => i.catId === id);
+
+  // 未完成依加入順序；已完成依完成時間排在最後
+  function sortedItems(catId) {
+    return itemsOfCat(catId).sort((a, b) => {
+      if (a.done !== b.done) return a.done ? 1 : -1;
+      return a.done ? (a.doneAt || 0) - (b.doneAt || 0) : a.order - b.order;
+    });
+  }
+
+  /* ---------------- 圖片 ---------------- */
+  const urlCache = new Map();
+  async function imgURL(id, kind) {
+    const key = id + ':' + kind;
+    if (urlCache.has(key)) return urlCache.get(key);
+    const rec = await dbGet('images', id);
+    if (!rec) return '';
+    const url = URL.createObjectURL(kind === 'full' ? rec.blob : (rec.thumb || rec.blob));
+    urlCache.set(key, url);
+    return url;
+  }
+  function forgetImage(id) {
+    ['full', 'thumb'].forEach(k => {
+      const key = id + ':' + k;
+      if (urlCache.has(key)) { URL.revokeObjectURL(urlCache.get(key)); urlCache.delete(key); }
+    });
+  }
+  function hydrateImages(scope) {
+    $$('img[data-img]', scope).forEach(async img => {
+      const url = await imgURL(img.dataset.img, img.dataset.kind || 'thumb');
+      if (url) img.src = url;
+    });
+  }
+  function loadImage(file) {
+    return new Promise((resolve, reject) => {
+      const url = URL.createObjectURL(file);
+      const img = new Image();
+      img.onload = () => { URL.revokeObjectURL(url); resolve(img); };
+      img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('無法讀取圖片')); };
+      img.src = url;
+    });
+  }
+  function resizeTo(img, max, quality) {
+    const s = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+    const c = document.createElement('canvas');
+    c.width = Math.round(img.naturalWidth * s);
+    c.height = Math.round(img.naturalHeight * s);
+    c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+    return new Promise(r => c.toBlob(r, 'image/jpeg', quality));
+  }
+  async function processPhoto(file) {
+    const img = await loadImage(file);
+    const [blob, thumb] = await Promise.all([
+      resizeTo(img, CONFIG.photoMax, CONFIG.photoQuality),
+      resizeTo(img, CONFIG.thumbMax, 0.7)
+    ]);
+    return { id: uid(), blob, thumb, createdAt: Date.now() };
+  }
+
+  /* ---------------- 畫面：主清單 ---------------- */
+  function renderAll() {
+    const list = $('[data-page="list"] .sl-list');
+    if (!state.cats.length) {
+      list.innerHTML = `
+        <div class="sl-empty">
+          ${ICON.cart}
+          <h2>還沒有任何類別</h2>
+          <p>先建立一個類別，例如「蔬果」、「日用品」，<br>再在裡面加入要買的東西。</p>
+          <button class="sl-btn-pill" data-act="add-cat">${ICON.plusSm}新增第一個類別</button>
+        </div>`;
+    } else {
+      list.innerHTML = state.cats.map(catHTML).join('');
+      state.cats.forEach(c => renderItems(c.id));
+    }
+    renderSummary();
+    renderCompare();
+  }
+
+  function catHTML(c) {
+    return `
+      <section class="sl-cat${c.collapsed ? ' collapsed' : ''}" data-cat="${c.id}">
+        <div class="sl-cat-head">
+          <button class="sl-cat-toggle" data-act="collapse" aria-expanded="${!c.collapsed}">
+            ${ICON.chev}<span class="sl-cat-dot">${ICON.bag}</span><span class="sl-cat-name">${esc(c.name)}</span><span class="sl-count"></span>
+          </button>
+          <button class="sl-icon-btn" data-act="cat-menu" aria-label="類別選項">${ICON.more}</button>
+        </div>
+        <div class="sl-progress"><i></i></div>
+        <div class="sl-cat-body">
+          <ul class="sl-items"></ul>
+          <div class="sl-add" data-cat="${c.id}">
+            <span class="sl-add-icon">${ICON.plus}</span>
+            <input type="text" placeholder="新增品項…" enterkeyhint="done" autocomplete="off" aria-label="在 ${esc(c.name)} 新增品項">
+            <button type="button" data-act="add-item">加入</button>
+          </div>
+        </div>
+      </section>`;
+  }
+
+  function itemHTML(i) {
+    const n = i.images ? i.images.length : 0;
+    const inGroup = !!(i.groupId && groupById(i.groupId));
+    const low = inGroup ? bestPrice(i) : null;
+    const sg = i.specGroupId && specGroupById(i.specGroupId);
+    const tot = sg ? specTotal(i) : null;
+    return `
+      <li class="sl-item${i.done ? ' done' : ''}" data-id="${i.id}">
+        <button class="sl-item-main" data-act="open" aria-label="查看 ${esc(i.name)}">
+          <span class="sl-tile">
+            ${n ? `<img data-img="${i.images[0]}" alt="">` : `<span class="sl-tile-empty">${ICON.tileEmpty}</span>`}
+            ${n > 1 ? `<span class="sl-badge">${ICON.photos}${n}</span>` : ''}
+          </span>
+          <span class="sl-item-name">${esc(i.name)}</span>
+          ${low || tot ? `<span class="sl-item-tags">
+            ${low ? `<span class="sl-item-price">${fmt(low.price)}</span>` : ''}
+            ${tot ? `<span class="sl-item-price sl-item-spec">${fmtNum(tot)}${sg.unit ? esc(sg.unit) : ''}</span>` : ''}
+          </span>` : ''}
+        </button>
+        <div class="sl-tile-ov">
+          <label class="sl-check">
+            <input type="checkbox"${i.done ? ' checked' : ''} aria-label="完成：${esc(i.name)}">
+            <span class="sl-box">${ICON.check}</span>
+          </label>
+          <div class="sl-tile-tools">
+            <button type="button" class="sl-cmp-btn${sg ? ' on' : ''}" data-act="spec" aria-label="規格比較：${esc(i.name)}"><span>${ICON.ruler}</span></button>
+            <button type="button" class="sl-cmp-btn${inGroup ? ' on' : ''}" data-act="compare" aria-label="比價：${esc(i.name)}"><span>${ICON.scale}</span></button>
+          </div>
+        </div>
+      </li>`;
+  }
+
+  function renderItems(catId, animate) {
+    const sec = $(`.sl-cat[data-cat="${catId}"]`);
+    if (!sec) return;
+    const ul = $('.sl-items', sec);
+    const before = animate ? positions(ul) : null;
+    ul.innerHTML = sortedItems(catId).map(itemHTML).join('');
+    hydrateImages(ul);
+    renderCatStats(catId);
+    if (before) flip(ul, before);
+  }
+
+  function renderCatStats(catId) {
+    const sec = $(`.sl-cat[data-cat="${catId}"]`);
+    if (!sec) return;
+    const items = itemsOfCat(catId);
+    const done = items.filter(i => i.done).length;
+    $('.sl-count', sec).textContent = `${done}/${items.length}`;
+    $('.sl-progress i', sec).style.width = items.length ? (done / items.length * 100) + '%' : '0';
+    sec.classList.toggle('all-done', items.length > 0 && done === items.length);
+  }
+
+  function renderSummary() {
+    const total = state.items.length;
+    const left = state.items.filter(i => !i.done).length;
+    $('[data-page="list"] .sl-summary').textContent = total ? (left ? `還有 ${left} 項待買・共 ${total} 項` : `全部 ${total} 項都買齊了 ♡`) : '新增類別開始規劃';
+  }
+
+  // 平滑移動動畫（FLIP）
+  function positions(ul) {
+    const m = new Map();
+    $$('.sl-item', ul).forEach(el => { const r = el.getBoundingClientRect(); m.set(el.dataset.id, { x: r.left, y: r.top }); });
+    return m;
+  }
+  function flip(ul, before) {
+    $$('.sl-item', ul).forEach(el => {
+      const old = before.get(el.dataset.id);
+      if (old == null) {
+        el.animate([{ opacity: 0, transform: 'scale(.85)' }, { opacity: 1, transform: 'none' }], { duration: 220, easing: 'ease-out' });
+        return;
+      }
+      const r = el.getBoundingClientRect();
+      const dx = old.x - r.left, dy = old.y - r.top;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      el.style.zIndex = el.classList.contains('done') ? '3' : '1';
+      el.animate([{ transform: `translate(${dx}px, ${dy}px)` }, { transform: 'none' }], { duration: 420, easing: 'cubic-bezier(.2,.8,.2,1)' })
+        .onfinish = () => { el.style.zIndex = ''; };
+    });
+  }
+
+  /* ---------------- 動作：類別 ---------------- */
+  async function addCategory() {
+    const name = await ask({ title: '新增類別', placeholder: '例如：蔬果、日用品', okText: '新增' });
+    if (!name) return;
+    const c = { id: uid(), name, order: (state.cats.length ? Math.max(...state.cats.map(x => x.order)) : 0) + 1, collapsed: false };
+    state.cats.push(c);
+    await dbPut('cats', c);
+    renderAll();
+    const sec = $(`.sl-cat[data-cat="${c.id}"]`);
+    if (sec) sec.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+
+  function toggleCollapse(catId) {
+    const c = catById(catId);
+    if (!c) return;
+    c.collapsed = !c.collapsed;
+    dbPut('cats', c);
+    const sec = $(`.sl-cat[data-cat="${catId}"]`);
+    sec.classList.toggle('collapsed', c.collapsed);
+    $('.sl-cat-toggle', sec).setAttribute('aria-expanded', String(!c.collapsed));
+  }
+
+  async function catMenu(catId) {
+    const c = catById(catId);
+    if (!c) return;
+    const idx = state.cats.indexOf(c);
+    const items = itemsOfCat(catId);
+    const doneN = items.filter(i => i.done).length;
+    const choice = await actionSheet(c.name, [
+      { label: '重新命名', value: 'rename' },
+      { label: '往上移', value: 'up', disabled: idx === 0 },
+      { label: '往下移', value: 'down', disabled: idx === state.cats.length - 1 },
+      { label: '全部取消勾選', value: 'uncheck', disabled: !doneN },
+      { label: `清除已完成（${doneN}）`, value: 'clear', danger: true, disabled: !doneN },
+      { label: '刪除類別', value: 'delete', danger: true }
+    ]);
+    if (!choice) return;
+
+    if (choice === 'rename') {
+      const name = await ask({ title: '重新命名類別', value: c.name, okText: '儲存' });
+      if (!name) return;
+      c.name = name;
+      await dbPut('cats', c);
+      $(`.sl-cat[data-cat="${catId}"] .sl-cat-name`).textContent = name;
+    }
+    if (choice === 'up' || choice === 'down') {
+      const other = state.cats[idx + (choice === 'up' ? -1 : 1)];
+      [c.order, other.order] = [other.order, c.order];
+      state.cats.sort((a, b) => a.order - b.order);
+      await Promise.all([dbPut('cats', c), dbPut('cats', other)]);
+      renderAll();
+    }
+    if (choice === 'uncheck') {
+      items.forEach(i => { if (i.done) { i.done = false; i.doneAt = null; dbPut('items', i); } });
+      renderItems(catId, true);
+      renderSummary();
+    }
+    if (choice === 'clear') {
+      const ok = await confirmBox({ title: '清除已完成？', message: `將刪除「${c.name}」中 ${doneN} 個已完成品項及其照片。`, okText: '清除', danger: true });
+      if (!ok) return;
+      await removeItems(items.filter(i => i.done));
+      renderItems(catId, true);
+      renderSummary();
+    }
+    if (choice === 'delete') {
+      const ok = await confirmBox({ title: `刪除「${c.name}」？`, message: items.length ? `裡面的 ${items.length} 個品項與照片也會一起刪除，無法復原。` : '此動作無法復原。', okText: '刪除', danger: true });
+      if (!ok) return;
+      await removeItems(items);
+      state.cats = state.cats.filter(x => x.id !== catId);
+      await dbDel('cats', catId);
+      renderAll();
+    }
+  }
+
+  /* ---------------- 動作：品項 ---------------- */
+  function addItem(catId, name) {
+    const siblings = itemsOfCat(catId);
+    const it = {
+      id: uid(), catId, name,
+      done: false, doneAt: null,
+      order: (siblings.length ? Math.max(...siblings.map(i => i.order)) : 0) + 1,
+      note: '', images: [], createdAt: Date.now()
+    };
+    state.items.push(it);
+    dbPut('items', it);
+    renderItems(catId, true);
+    renderSummary();
+  }
+
+  function setDone(it, done) {
+    it.done = done;
+    it.doneAt = done ? Date.now() : null;
+    dbPut('items', it);
+  }
+
+  // 勾選 → 立即打勾，稍後自動移到清單最後
+  function toggleFromList(id, done, li) {
+    const it = itemById(id);
+    if (!it) return;
+    setDone(it, done);
+    li.classList.toggle('done', done);
+    renderCatStats(it.catId);
+    renderSummary();
+    clearTimeout(moveTimers.get(it.catId));
+    moveTimers.set(it.catId, setTimeout(() => {
+      moveTimers.delete(it.catId);
+      renderItems(it.catId, true);
+    }, CONFIG.moveDelay));
+  }
+
+  async function removeItems(list) {
+    for (const it of list) {
+      for (const imgId of it.images || []) { forgetImage(imgId); await dbDel('images', imgId); }
+      await dbDel('items', it.id);
+    }
+    const ids = new Set(list.map(i => i.id));
+    state.items = state.items.filter(i => !ids.has(i.id));
+  }
+
+  /* ---------------- 詳細頁 ---------------- */
+  const detail = $('.sl-detail');
+  const nameInput = $('.sl-d-name');
+  const noteInput = $('.sl-d-note');
+  const doneSwitch = $('.sl-d-done');
+  let saveTimer = null;
+
+  function openDetail(id) {
+    const it = itemById(id);
+    if (!it) return;
+    currentId = id;
+    $('.sl-d-cat').textContent = (catById(it.catId) || {}).name || '';
+    nameInput.value = it.name;
+    noteInput.value = it.note || '';
+    doneSwitch.checked = it.done;
+    refreshDetailCompare();
+    renderGallery();
+    autoGrow();
+    $('.sl-d-scroll').scrollTop = 0;
+    detail.classList.add('open');
+    detail.setAttribute('aria-hidden', 'false');
+    root.classList.add('sl-detail-open');
+  }
+
+  function flushDetail() {
+    const it = itemById(currentId);
+    if (!it) return;
+    clearTimeout(saveTimer);
+    it.name = nameInput.value.trim() || '未命名品項';
+    it.note = noteInput.value;
+    dbPut('items', it);
+  }
+
+  function closeDetail() {
+    const it = itemById(currentId);
+    if (it) flushDetail();
+    if (document.activeElement && detail.contains(document.activeElement)) document.activeElement.blur();
+    detail.classList.remove('open');
+    detail.setAttribute('aria-hidden', 'true');
+    root.classList.remove('sl-detail-open');
+    currentId = null;
+    if (it) { renderItems(it.catId, true); renderSummary(); renderCompare(); }
+  }
+
+  function saveSoon() {
+    const it = itemById(currentId);
+    if (!it) return;
+    it.name = nameInput.value.trim() || it.name;
+    it.note = noteInput.value;
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => dbPut('items', it), 400);
+  }
+
+  function autoGrow() {
+    noteInput.style.height = 'auto';
+    noteInput.style.height = Math.max(150, noteInput.scrollHeight) + 'px';
+  }
+
+  function renderGallery() {
+    const it = itemById(currentId);
+    const g = $('.sl-gallery');
+    if (!it) return;
+    const n = it.images.length;
+    if (!n) {
+      g.innerHTML = `
+        <button class="sl-photo-empty" data-act="add-photo">
+          ${ICON.camera}<span><strong>新增照片</strong><small>拍照或從相簿選擇</small></span>
+        </button>`;
+      return;
+    }
+    g.innerHTML = `
+      <div class="sl-carousel">
+        ${it.images.map((id, k) => `<img data-img="${id}" data-kind="full" data-act="view" data-index="${k}" alt="照片 ${k + 1}">`).join('')}
+      </div>
+      ${n > 1 ? `<div class="sl-dots">${it.images.map((_, k) => `<i class="${k ? '' : 'on'}"></i>`).join('')}</div>` : ''}
+      <div class="sl-photo-bar">
+        <span>${n} 張照片</span>
+        <button class="sl-link" data-act="add-photo">${ICON.plusSm}新增照片</button>
+      </div>`;
+    hydrateImages(g);
+    const car = $('.sl-carousel', g);
+    car.addEventListener('scroll', () => {
+      const k = Math.round(car.scrollLeft / car.clientWidth);
+      $$('.sl-dots i', g).forEach((d, j) => d.classList.toggle('on', j === k));
+    }, { passive: true });
+  }
+
+  async function addPhotos(files) {
+    const it = itemById(currentId);
+    if (!it || !files.length) return;
+    toast('處理照片中…', 60000);
+    let failed = 0;
+    for (const f of files) {
+      try {
+        const rec = await processPhoto(f);
+        if (db) await run('images', 'readwrite', o => o.put(rec)); else mem.images.set(rec.id, rec);
+        it.images.push(rec.id);
+      } catch (err) { console.error(err); failed++; }
+    }
+    await dbPut('items', it);
+    toast(failed ? `${failed} 張照片無法加入` : '已加入照片');
+    if (currentId === it.id) {
+      renderGallery();
+      const car = $('.sl-carousel');
+      if (car) car.scrollTo({ left: car.scrollWidth, behavior: 'smooth' });
+    }
+  }
+
+  async function deleteCurrentItem() {
+    const it = itemById(currentId);
+    if (!it) return;
+    const ok = await confirmBox({ title: `刪除「${it.name}」？`, message: '品項、照片與備註都會刪除。', okText: '刪除', danger: true });
+    if (!ok) return;
+    const catId = it.catId;
+    await removeItems([it]);
+    currentId = null;
+    detail.classList.remove('open');
+    detail.setAttribute('aria-hidden', 'true');
+    root.classList.remove('sl-detail-open');
+    renderItems(catId, true);
+    renderSummary();
+  }
+
+  /* ---------------- 全螢幕看圖 ---------------- */
+  const viewer = $('.sl-viewer');
+  const track = $('.sl-v-track');
+  const viewerIndex = () => Math.round(track.scrollLeft / Math.max(1, track.clientWidth));
+  const updateViewerCount = () => {
+    const it = itemById(currentId);
+    if (it) $('.sl-v-count').textContent = `${viewerIndex() + 1} / ${it.images.length}`;
+  };
+  track.addEventListener('scroll', updateViewerCount, { passive: true });
+
+  function openViewer(index) {
+    const it = itemById(currentId);
+    if (!it || !it.images.length) return;
+    track.innerHTML = it.images.map(id => `<div class="sl-v-slide"><img data-img="${id}" data-kind="full" alt=""></div>`).join('');
+    hydrateImages(track);
+    viewer.classList.add('open');
+    viewer.setAttribute('aria-hidden', 'false');
+    track.scrollLeft = index * track.clientWidth;
+    updateViewerCount();
+  }
+  function closeViewer() {
+    viewer.classList.remove('open');
+    viewer.setAttribute('aria-hidden', 'true');
+  }
+  async function deleteViewerPhoto() {
+    const it = itemById(currentId);
+    if (!it) return;
+    const k = viewerIndex();
+    const ok = await confirmBox({ title: '刪除這張照片？', okText: '刪除', danger: true });
+    if (!ok) return;
+    const [imgId] = it.images.splice(k, 1);
+    forgetImage(imgId);
+    await dbDel('images', imgId);
+    await dbPut('items', it);
+    renderGallery();
+    if (!it.images.length) closeViewer();
+    else openViewer(Math.min(k, it.images.length - 1));
+  }
+  async function setCover() {
+    const it = itemById(currentId);
+    if (!it) return;
+    const k = viewerIndex();
+    if (k > 0) {
+      const [imgId] = it.images.splice(k, 1);
+      it.images.unshift(imgId);
+      await dbPut('items', it);
+      renderGallery();
+      openViewer(0);
+    }
+    toast('已設為封面');
+  }
+
+  /* ---------------- 對話框 / 選單 / 提示 ---------------- */
+  const overlay = $('.sl-overlay');
+  function showOverlay(html, onBackdrop) {
+    overlay.innerHTML = html;
+    overlay.classList.add('open');
+    overlay.onclick = e => { if (e.target === overlay) onBackdrop(); };
+  }
+  const hideOverlay = () => overlay.classList.remove('open');
+
+  function ask({ title, value = '', placeholder = '', okText = '確定' }) {
+    return new Promise(resolve => {
+      showOverlay(`
+        <div class="sl-dialog" role="dialog" aria-modal="true">
+          <h3>${esc(title)}</h3>
+          <div>
+            <input class="sl-field" type="text" value="${esc(value)}" placeholder="${esc(placeholder)}" enterkeyhint="done" autocomplete="off">
+            <div class="sl-dialog-btns">
+              <button type="button" data-r="cancel">取消</button>
+              <button type="button" data-r="ok" class="strong">${esc(okText)}</button>
+            </div>
+          </div>
+        </div>`, () => done(null));
+      const input = $('input', overlay);
+      input.focus();
+      if (value) input.select();
+      function done(v) { input.blur(); hideOverlay(); resolve(v); }
+      const submit = () => { const v = input.value.trim(); if (v) done(v); else input.focus(); };
+      $('[data-r="ok"]', overlay).onclick = submit;
+      input.onkeydown = e => { if (isEnter(e)) { e.preventDefault(); submit(); } };
+      $('[data-r="cancel"]', overlay).onclick = () => done(null);
+    });
+  }
+
+  function confirmBox({ title, message = '', okText = '確定', danger = false }) {
+    return new Promise(resolve => {
+      showOverlay(`
+        <div class="sl-dialog" role="alertdialog" aria-modal="true">
+          <h3>${esc(title)}</h3>
+          ${message ? `<p>${esc(message)}</p>` : ''}
+          <div class="sl-dialog-btns">
+            <button type="button" data-r="no">取消</button>
+            <button type="button" data-r="yes" class="${danger ? 'danger' : 'strong'}">${esc(okText)}</button>
+          </div>
+        </div>`, () => done(false));
+      function done(v) { hideOverlay(); resolve(v); }
+      $('[data-r="no"]', overlay).onclick = () => done(false);
+      $('[data-r="yes"]', overlay).onclick = () => done(true);
+    });
+  }
+
+  function actionSheet(title, actions) {
+    return new Promise(resolve => {
+      showOverlay(`
+        <div class="sl-sheet" role="dialog" aria-modal="true">
+          <div class="sl-sheet-group">
+            <div class="sl-sheet-title">${esc(title)}</div>
+            ${actions.map((a, k) => `<button type="button" data-k="${k}" class="${a.danger ? 'danger' : ''}"${a.disabled ? ' disabled' : ''}>${esc(a.label)}</button>`).join('')}
+          </div>
+          <button type="button" class="sl-cancel" data-k="-1">取消</button>
+        </div>`, () => done(null));
+      function done(v) { hideOverlay(); resolve(v); }
+      $$('.sl-sheet button', overlay).forEach(b => {
+        b.onclick = () => { const k = +b.dataset.k; done(k < 0 ? null : actions[k].value); };
+      });
+    });
+  }
+
+  let toastTimer;
+  function toast(msg, ms = 1800) {
+    const t = $('.sl-toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => t.classList.remove('show'), ms);
+  }
+
+  /* ---------------- 比價 ---------------- */
+  const groupById = id => state.groups.find(g => g.id === id);
+  const membersOf = gid => state.items.filter(i => i.groupId === gid);
+  const fmt = n => 'NT$' + Number(n).toLocaleString('zh-TW', { maximumFractionDigits: 2 });
+  function bestPrice(it) {
+    const ps = it.prices || [];
+    return ps.length ? ps.reduce((a, b) => (b.price < a.price ? b : a)) : null;
+  }
+  function knownStores() {
+    const set = new Set();
+    state.items.forEach(i => (i.prices || []).forEach(p => set.add(p.store)));
+    return [...set];
+  }
+  async function createGroup(name, kind = 'price') {
+    const cfg = KIND[kind], arr = cfg.list();
+    const g = { id: uid(), name, order: (arr.length ? Math.max(...arr.map(x => x.order)) : 0) + 1, createdAt: Date.now() };
+    if (kind === 'spec') g.better = 'max';
+    arr.push(g);
+    await dbPut(cfg.store, g);
+    return g;
+  }
+  function refreshAfterCompare(it) {
+    if (it) renderItems(it.catId);
+    renderCompare();
+    refreshDetailCompare();
+  }
+  function refreshDetailCompare() {
+    const it = itemById(currentId);
+    const el = $('.sl-d-cmp-val');
+    if (!it || !el) return;
+    const sg = it.specGroupId && specGroupById(it.specGroupId);
+    const st = sg && specTotal(it);
+    const sv = $('.sl-d-spec-val');
+    sv.textContent = !sg ? '未加入' : st ? `${sg.name}・總量 ${fmtNum(st)}${sg.unit ? ' ' + sg.unit : ''}` : `${sg.name}・尚未填規格`;
+    sv.classList.toggle('on', !!sg);
+    const g = it.groupId && groupById(it.groupId);
+    const b = g && bestPrice(it);
+    el.textContent = !g ? '未加入' : b ? `${g.name}・最低 ${fmt(b.price)}（${b.store}）` : `${g.name}・尚未填價格`;
+    el.classList.toggle('on', !!g);
+  }
+
+  // 點縮圖右下角天平 → 選群組 → 填價格
+  async function compareFlow(id) {
+    const it = itemById(id);
+    if (!it) return;
+    const r = await pickGroup(it);
+    if (r === null) return;
+    if (r === '__remove') {
+      it.groupId = null;
+      await dbPut('items', it);
+      refreshAfterCompare(it);
+      toast('已移出比價');
+      return;
+    }
+    it.groupId = r;
+    await dbPut('items', it);
+    refreshAfterCompare(it);
+    await priceEditor(it);
+  }
+
+  const KIND = {
+    price: {
+      field: 'groupId', store: 'groups', list: () => state.groups,
+      title: '選擇比價群組', ask: n => `「${n}」要和哪些商品一起比價？`,
+      placeholder: '新增群組，例如：洗衣精', removeText: '移出比價'
+    },
+    spec: {
+      field: 'specGroupId', store: 'specGroups', list: () => state.specGroups,
+      title: '選擇規格比較群組', ask: n => `「${n}」要和哪些商品比較規格？`,
+      placeholder: '新增群組，例如：衛生紙', removeText: '移出規格比較'
+    }
+  };
+  const itemsIn = (kind, gid) => state.items.filter(i => i[KIND[kind].field] === gid);
+
+  function pickGroup(it, kind = 'price') {
+    const cfg = KIND[kind];
+    return new Promise(resolve => {
+      const groups = cfg.list;
+      const cur = it[cfg.field] && groups().find(g => g.id === it[cfg.field]) ? it[cfg.field] : null;
+      let sel = cur || (groups().length === 1 ? groups()[0].id : null);
+      showOverlay(`
+        <div class="sl-dialog sl-wide" role="dialog" aria-modal="true">
+          <h3>${cfg.title}</h3>
+          <p>${esc(cfg.ask(it.name))}</p>
+          <div class="sl-opt-list"></div>
+          <div class="sl-inline">
+            <input class="sl-field" type="text" placeholder="${cfg.placeholder}" enterkeyhint="done" autocomplete="off">
+            <button type="button" class="sl-mini-btn" data-r="new">新增</button>
+          </div>
+          ${cur ? `<button type="button" class="sl-remove-link" data-r="remove">${cfg.removeText}</button>` : ''}
+          <div class="sl-dialog-btns">
+            <button type="button" data-r="cancel">取消</button>
+            <button type="button" data-r="ok" class="strong">確定</button>
+          </div>
+        </div>`, () => done(null));
+      const list = $('.sl-opt-list', overlay);
+      const input = $('.sl-inline input', overlay);
+      const okBtn = $('[data-r="ok"]', overlay);
+      function paint() {
+        list.innerHTML = groups().length
+          ? groups().map(g => `
+              <button type="button" class="sl-opt${g.id === sel ? ' on' : ''}" data-g="${g.id}" role="radio" aria-checked="${g.id === sel}">
+                <span class="sl-radio"></span><span class="sl-opt-name">${esc(g.name)}</span><span class="sl-opt-n">${itemsIn(kind, g.id).length} 項</span>
+              </button>`).join('')
+          : '<div class="sl-opt-empty">還沒有群組，請先在下方新增一個</div>';
+        okBtn.disabled = !sel;
+        $$('.sl-opt', list).forEach(b => { b.onclick = () => { sel = b.dataset.g; paint(); }; });
+      }
+      async function addNew() {
+        const name = input.value.trim();
+        if (!name) { input.focus(); return; }
+        const exist = groups().find(g => g.name === name);
+        sel = exist ? exist.id : (await createGroup(name, kind)).id;
+        input.value = '';
+        paint();
+        const on = $('.sl-opt.on', list);
+        if (on) on.scrollIntoView({ block: 'nearest' });
+      }
+      function done(v) { input.blur(); hideOverlay(); resolve(v); }
+      $('[data-r="new"]', overlay).onclick = addNew;
+      input.onkeydown = e => { if (isEnter(e)) { e.preventDefault(); addNew(); } };
+      $('[data-r="cancel"]', overlay).onclick = () => done(null);
+      okBtn.onclick = () => { if (sel) done(sel); };
+      const rm = $('[data-r="remove"]', overlay);
+      if (rm) rm.onclick = () => done('__remove');
+      paint();
+    });
+  }
+
+  // 填價格視窗：可記錄多家店，自動標出最便宜
+  function priceEditor(it) {
+    return new Promise(resolve => {
+      const g = groupById(it.groupId);
+      showOverlay(`
+        <div class="sl-dialog sl-wide" role="dialog" aria-modal="true">
+          <div class="sl-pe-head">
+            <span class="sl-pe-thumb">${it.images && it.images[0] ? `<img data-img="${it.images[0]}" alt="">` : ICON.tileEmpty}</span>
+            <div class="sl-pe-title">
+              <h3>${esc(it.name)}</h3>
+              <p>${g ? `比價群組：${esc(g.name)}` : ''}</p>
+            </div>
+          </div>
+          <ul class="sl-price-list"></ul>
+          <div class="sl-pe-form">
+            <input class="sl-field" data-f="store" type="text" placeholder="店家" list="sl-store-list" enterkeyhint="next" autocomplete="off">
+            <input class="sl-field" data-f="price" type="text" placeholder="價格" inputmode="decimal" enterkeyhint="done" autocomplete="off">
+            <button type="button" class="sl-mini-btn" data-r="add">加入</button>
+          </div>
+          <datalist id="sl-store-list">${knownStores().map(st => `<option value="${esc(st)}"></option>`).join('')}</datalist>
+          <div class="sl-dialog-btns">
+            <button type="button" data-r="ok" class="strong">完成</button>
+          </div>
+        </div>`, () => done());
+      hydrateImages(overlay);
+      const listEl = $('.sl-price-list', overlay);
+      const storeIn = $('[data-f="store"]', overlay);
+      const priceIn = $('[data-f="price"]', overlay);
+      let closed = false;
+      function paint() {
+        const ps = [...(it.prices || [])].sort((a, b) => a.price - b.price);
+        const many = ps.length > 1;
+        listEl.innerHTML = ps.length
+          ? ps.map((p, k) => `
+              <li class="sl-price-row${k === 0 && many ? ' best' : ''}">
+                <span class="sl-pr-store">${esc(p.store)}</span>
+                ${k === 0 && many ? `<span class="sl-best-tag">${ICON.crown}最便宜</span>` : ''}
+                <span class="sl-pr-price">${fmt(p.price)}</span>
+                <button type="button" class="sl-pr-del" data-del="${p.id}" aria-label="刪除 ${esc(p.store)} 的價格">×</button>
+              </li>`).join('')
+          : '<li class="sl-opt-empty">輸入店家與價格後按「加入」，可記錄多家店</li>';
+        $$('[data-del]', listEl).forEach(b => {
+          b.onclick = async () => { it.prices = it.prices.filter(p => p.id !== b.dataset.del); await dbPut('items', it); paint(); };
+        });
+      }
+      async function add() {
+        const store = storeIn.value.trim();
+        const price = parseFloat(priceIn.value.replace(/[^\d.]/g, ''));
+        if (!store) { storeIn.focus(); return false; }
+        if (!isFinite(price)) { priceIn.focus(); toast('請輸入價格數字'); return false; }
+        it.prices = it.prices || [];
+        const same = it.prices.find(p => p.store === store);
+        if (same) { same.price = price; same.at = Date.now(); }
+        else it.prices.push({ id: uid(), store, price, at: Date.now() });
+        await dbPut('items', it);
+        storeIn.value = ''; priceIn.value = '';
+        paint();
+        storeIn.focus();
+        return true;
+      }
+      function done() {
+        if (closed) return;
+        closed = true;
+        if (document.activeElement) document.activeElement.blur();
+        hideOverlay();
+        refreshAfterCompare(it);
+        resolve();
+      }
+      storeIn.onkeydown = e => { if (isEnter(e)) { e.preventDefault(); priceIn.focus(); } };
+      priceIn.onkeydown = e => { if (isEnter(e)) { e.preventDefault(); add(); } };
+      $('[data-r="add"]', overlay).onclick = add;
+      // 按「完成」時若欄位還有填好的內容，順便存進去
+      $('[data-r="ok"]', overlay).onclick = async () => {
+        if (storeIn.value.trim() && priceIn.value.trim()) { if (!(await add())) return; }
+        done();
+      };
+      paint();
+      storeIn.focus();
+    });
+  }
+
+  /* 比價分頁畫面 */
+  // 比價與規格比較共用群組：任何變動都同時更新兩個分頁
+  function renderCompare() { renderPriceTab(); renderSpec(); }
+
+  function renderPriceTab() {
+    const main = $('[data-page="compare"] .sl-list');
+    const sum = $('[data-page="compare"] .sl-summary');
+    if (!main) return;
+    const inCompare = state.items.filter(i => i.groupId && groupById(i.groupId)).length;
+    sum.textContent = state.groups.length ? `${state.groups.length} 個群組・${inCompare} 項商品比價中` : '比較不同店家的價格';
+    if (!state.groups.length) {
+      main.innerHTML = `
+        <div class="sl-empty">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v16M7 20h10M5 8h14M5 8l-2.5 6a2.5 2.5 0 0 0 5 0zM19 8l-2.5 6a2.5 2.5 0 0 0 5 0z"/></svg>
+          <h2>還沒有比價群組</h2>
+          <p>先建立群組（例如「洗衣精」），<br>再到購物清單點商品縮圖右下角的天平加入。</p>
+          <button class="sl-btn-pill" data-act="add-group">${ICON.plusSm}新增第一個群組</button>
+        </div>`;
+      return;
+    }
+    main.innerHTML = state.groups.map(groupHTML).join('');
+    hydrateImages(main);
+  }
+
+  function groupHTML(g) {
+    const ms = membersOf(g.id);
+    const priced = ms.filter(m => bestPrice(m));
+    let bestM = null, bestP = null;
+    priced.forEach(m => { const b = bestPrice(m); if (!bestP || b.price < bestP.price) { bestM = m; bestP = b; } });
+    const sorted = [...ms].sort((a, b) => {
+      const pa = bestPrice(a), pb = bestPrice(b);
+      if (!pa && !pb) return 0; if (!pa) return 1; if (!pb) return -1;
+      return pa.price - pb.price;
+    });
+    return `
+      <section class="sl-cat sl-group${g.collapsed ? ' collapsed' : ''}" data-group="${g.id}">
+        <div class="sl-cat-head">
+          <div class="sl-cat-toggle" data-act="g-collapse" role="button" tabindex="0" aria-expanded="${!g.collapsed}">
+            ${ICON.chev}<span class="sl-cat-dot">${ICON.scale}</span>
+            <span class="sl-cat-name">${esc(g.name)}</span>
+            <span class="sl-count">${ms.length} 項</span>
+          </div>
+          <button class="sl-icon-btn" data-act="group-menu" aria-label="群組選項">${ICON.more}</button>
+        </div>
+        ${bestM ? `
+          <div class="sl-g-best">
+            <span class="sl-g-best-ic">${ICON.crown}</span>
+            <span>最便宜：<b>${esc(catText(bestM) + bestM.name)}</b><br><small>${esc(bestP.store)}</small></span>
+            <span class="sl-g-best-p">${fmt(bestP.price)}</span>
+          </div>` : ''}
+        ${ms.length
+          ? `<ul class="sl-members">${sorted.map(m => memberHTML(m, m === bestM && priced.length > 1)).join('')}</ul>`
+          : `<p class="sl-g-empty">到購物清單點商品縮圖右下角的 <span class="sl-inline-ic">${ICON.scale}</span> 加入這個群組</p>`}
+      </section>`;
+  }
+
+  function memberHTML(m, isBest) {
+    const ps = [...(m.prices || [])].sort((a, b) => a.price - b.price);
+    const many = ps.length > 1;
+    const b = ps[0];
+    return `
+      <li class="sl-member${isBest ? ' best' : ''}" data-id="${m.id}">
+        <button type="button" class="sl-member-main" data-act="edit-price" aria-label="編輯 ${esc(m.name)} 的價格">
+          <span class="sl-m-thumb">${m.images && m.images[0] ? `<img data-img="${m.images[0]}" alt="">` : ICON.tileEmpty}</span>
+          <span class="sl-m-body">
+            <span class="sl-m-name">${catLabel(m)}${esc(m.name)}${isBest ? `<span class="sl-best-tag">${ICON.crown}最便宜</span>` : ''}</span>
+            <span class="sl-m-prices">
+              ${ps.length
+                ? ps.map((p, k) => `<span class="sl-price-chip${k === 0 && many ? ' best' : ''}">${esc(p.store)} ${fmt(p.price)}</span>`).join('')
+                : '<span class="sl-m-none">尚未填價格・點此填寫</span>'}
+            </span>
+          </span>
+          <span class="sl-m-low">${b ? fmt(b.price) : '—'}</span>
+        </button>
+        <button type="button" class="sl-icon-btn" data-act="member-menu" aria-label="更多選項">${ICON.more}</button>
+      </li>`;
+  }
+
+  async function addGroupFromPage() {
+    const name = await ask({ title: '新增比價群組', placeholder: '例如：洗衣精、衛生紙', okText: '新增' });
+    if (!name) return;
+    if (state.groups.find(g => g.name === name)) { toast('已有同名群組'); return; }
+    await createGroup(name);
+    renderCompare();
+  }
+
+  async function groupMenu(gid) {
+    const g = groupById(gid);
+    if (!g) return;
+    const ms = membersOf(gid);
+    const choice = await actionSheet(g.name, [
+      { label: '重新命名', value: 'rename' },
+      { label: '刪除群組', value: 'delete', danger: true }
+    ]);
+    if (choice === 'rename') {
+      const name = await ask({ title: '重新命名群組', value: g.name, okText: '儲存' });
+      if (!name) return;
+      g.name = name;
+      await dbPut('groups', g);
+      renderCompare();
+    }
+    if (choice === 'delete') {
+      const ok = await confirmBox({ title: `刪除「${g.name}」？`, message: ms.length ? `${ms.length} 項商品會移出比價（購物清單裡的品項不會被刪除）。` : '', okText: '刪除', danger: true });
+      if (!ok) return;
+      for (const m of ms) { m.groupId = null; await dbPut('items', m); renderItems(m.catId); }
+      state.groups = state.groups.filter(x => x.id !== gid);
+      await dbDel('groups', gid);
+      renderCompare();
+    }
+  }
+
+  async function memberMenu(id) {
+    const m = itemById(id);
+    if (!m) return;
+    const choice = await actionSheet(m.name, [
+      { label: '編輯價格', value: 'price' },
+      { label: '換到其他群組', value: 'move' },
+      { label: '移出群組', value: 'remove', danger: true }
+    ]);
+    if (choice === 'price') priceEditor(m);
+    if (choice === 'move') compareFlow(id);
+    if (choice === 'remove') { m.groupId = null; await dbPut('items', m); refreshAfterCompare(m); toast('已移出群組'); }
+  }
+
+  /* ---------------- 規格比較（與比價分開管理） ---------------- */
+  const specGroupById = id => state.specGroups.find(g => g.id === id);
+  const toNum = v => { const n = parseFloat(String(v ?? '').replace(/[^\d.]/g, '')); return isFinite(n) ? n : null; };
+  const fmtNum = n => Number(n).toLocaleString('zh-TW', { maximumFractionDigits: 2 });
+  function specTotal(it) {
+    const sp = it.spec || {};
+    const a = toNum(sp.value), b = toNum(sp.qty);
+    return a != null && b != null && a * b > 0 ? a * b : null;
+  }
+
+  // 常用單位（快速選擇）
+  const UNIT_PRESETS = [
+    { label: '容量', units: ['ml', 'L'] },
+    { label: '重量', units: ['g', 'kg'] },
+    { label: '數量', units: ['張', '抽', '片', '顆', '入', '包', '捲', '個'] },
+    { label: '長度', units: ['cm', 'm'] }
+  ];
+  const PRESET_SET = new Set(UNIT_PRESETS.flatMap(p => p.units));
+  const customUnits = () => [...new Set(state.specGroups.map(g => g.unit).filter(u => u && !PRESET_SET.has(u)))];
+
+  // 舊版（v2）把規格存在比價群組上 → 自動搬到新的規格群組
+  async function migrateSpecGroups() {
+    if (state.specGroups.length || state.items.some(i => i.specGroupId)) return;
+    for (const g of state.groups) {
+      const ms = state.items.filter(i => i.groupId === g.id && i.spec && (i.spec.value || i.spec.qty));
+      if (!ms.length) continue;
+      const sg = await createGroup(g.name, 'spec');
+      if (g.unit) { sg.unit = g.unit; await dbPut('specGroups', sg); }
+      for (const m of ms) { m.specGroupId = sg.id; await dbPut('items', m); }
+    }
+  }
+
+  // 價格來源：有在「比價」且填過價格 → 自動用比價的最低價；否則用規格比較裡手動填的價格
+  function specPriceOf(it) {
+    const inCmp = it.groupId && groupById(it.groupId);
+    const b = inCmp ? bestPrice(it) : null;
+    if (b) return { price: b.price, store: b.store, linked: true };
+    const p = toNum(it.specPrice);
+    return p != null && p > 0 ? { price: p, store: '', linked: false } : null;
+  }
+  function specUnitPrice(it) {
+    const t = specTotal(it), p = specPriceOf(it);
+    return t && p ? p.price / t : null;
+  }
+  // 自動挑好讀的基準：NT$0.0363/ml → NT$3.63 / 100ml
+  function fmtUnitPrice(per, unit) {
+    // 基準只用 1、100、1000…（每 100ml、每 100 抽 比較直覺）
+    let f = 1;
+    if (per < 1) { f = 100; while (per * f < 1 && f < 1e6) f *= 10; }
+    return `NT$${(per * f).toFixed(2)} / ${f > 1 ? fmtNum(f) : ''}${unit || '單位'}`;
+  }
+  // 依群組的比較目標（下拉選單）決定冠軍：總量（預設）或單位價格
+  function specWinner(gid) {
+    const g = specGroupById(gid);
+    if (!g) return null;
+    const ms = itemsIn('spec', gid);
+    if (g.target === 'unit') {
+      const priced = ms.filter(m => specUnitPrice(m) != null);
+      if (priced.length < 2) return null;
+      return { item: priced.reduce((a, b) => (specUnitPrice(b) < specUnitPrice(a) ? b : a)), kind: 'value' };
+    }
+    const sized = ms.filter(m => specTotal(m));
+    if (sized.length < 2) return null;
+    const min = g.better === 'min';
+    return { item: sized.reduce((a, b) => (min ? specTotal(b) < specTotal(a) : specTotal(b) > specTotal(a)) ? b : a), kind: 'amount' };
+  }
+  // 購物清單的類別名稱，例如「3coin」
+  const catLabel = it => { const c = catById(it.catId); return c ? `<span class="sl-cat-label">${esc(c.name)}</span>` : ''; };
+  const catText = it => { const c = catById(it.catId); return c ? c.name + ' ' : ''; };
+  function specSummary() {
+    const sum = $('[data-page="spec"] .sl-summary');
+    if (!sum) return;
+    const filled = state.items.filter(i => i.specGroupId && specGroupById(i.specGroupId) && specTotal(i)).length;
+    sum.textContent = state.specGroups.length ? `${state.specGroups.length} 個群組・${filled} 項已填規格` : '比較數值 × 單一數量 = 總量';
+  }
+
+  // 點縮圖右下角的尺 → 選規格群組 → 填規格
+  async function specFlow(id) {
+    const it = itemById(id);
+    if (!it) return;
+    const r = await pickGroup(it, 'spec');
+    if (r === null) return;
+    if (r === '__remove') {
+      it.specGroupId = null;
+      await dbPut('items', it);
+      refreshAfterCompare(it);
+      toast('已移出規格比較');
+      return;
+    }
+    it.specGroupId = r;
+    await dbPut('items', it);
+    refreshAfterCompare(it);
+    await specEditor(it);
+  }
+
+  // 單位晶片（快速選擇）
+  function unitChipsHTML(selected, grouped) {
+    const chip = u => `<button type="button" class="sl-uchip${u === selected ? ' on' : ''}" data-unit="${esc(u)}">${esc(u)}</button>`;
+    const customs = customUnits();
+    if (grouped) {
+      return UNIT_PRESETS.map(p => `
+          <div class="sl-ugroup"><span class="sl-ulabel">${p.label}</span><div class="sl-uchips">${p.units.map(chip).join('')}</div></div>`).join('')
+        + (customs.length ? `<div class="sl-ugroup"><span class="sl-ulabel">自訂</span><div class="sl-uchips">${customs.map(chip).join('')}</div></div>` : '');
+    }
+    return `<div class="sl-uchips sl-uchips-row">${[...UNIT_PRESETS.flatMap(p => p.units), ...customs].map(chip).join('')}
+      <button type="button" class="sl-uchip sl-uchip-add" data-unit-custom>＋自訂</button></div>`;
+  }
+
+  // 填規格視窗
+  function specEditor(it) {
+    return new Promise(resolve => {
+      const g = specGroupById(it.specGroupId);
+      if (!g) { resolve(); return; }
+      const sp = it.spec || {};
+      showOverlay(`
+        <div class="sl-dialog sl-wide" role="dialog" aria-modal="true">
+          <div class="sl-pe-head">
+            <span class="sl-pe-thumb">${it.images && it.images[0] ? `<img data-img="${it.images[0]}" alt="">` : ICON.tileEmpty}</span>
+            <div class="sl-pe-title">
+              <h3>${catLabel(it)}${esc(it.name)}</h3>
+              <p>規格群組：${esc(g.name)}</p>
+            </div>
+          </div>
+          <div class="sl-se-label">單位 <small>（整個群組共用）</small></div>
+          <div class="sl-se-units">${unitChipsHTML(g.unit, false)}</div>
+          <div class="sl-se-custom" hidden>
+            <div class="sl-inline">
+              <input class="sl-field" type="text" placeholder="自訂單位，例如：粒、瓶" enterkeyhint="done" autocomplete="off">
+              <button type="button" class="sl-mini-btn" data-r="unit-ok">套用</button>
+            </div>
+          </div>
+          <div class="sl-spec-calc sl-se-calc">
+            <label class="sl-spec-f"><small>比較數值</small>
+              <input class="sl-spec-in" data-k="value" type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" value="${esc(sp.value ?? '')}" placeholder="例 2000"></label>
+            <span class="sl-op">×</span>
+            <label class="sl-spec-f"><small>單一數量</small>
+              <input class="sl-spec-in" data-k="qty" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" value="${esc(sp.qty ?? '')}" placeholder="例 3"></label>
+            <span class="sl-op">=</span>
+            <span class="sl-spec-total"><small>總量</small><b>—</b></span>
+          </div>
+          ${(() => {
+            const p = specPriceOf(it);
+            return `<div class="sl-spec-calc sl-se-calc sl-spec-pricerow">
+              ${p && p.linked
+                ? `<span class="sl-sp-linked is-static"><small>價格・來自比價</small><b>${fmt(p.price)}<em>${esc(p.store)}</em></b></span>`
+                : `<label class="sl-spec-f sl-sp-field"><small>價格</small>
+                     <span class="sl-sp-wrap"><i>NT$</i><input class="sl-spec-in" data-k="price" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" value="${esc(it.specPrice ?? '')}" placeholder="選填"></span></label>`}
+              <span class="sl-op">→</span>
+              <span class="sl-spec-total sl-spec-unitp"><small>單位價格</small><b>—</b></span>
+            </div>
+            ${p && p.linked ? '' : '<p class="sl-se-hint">這項商品沒有在比價，可以直接在這裡填價格</p>'}`;
+          })()}
+          <div class="sl-dialog-btns">
+            <button type="button" data-r="ok" class="strong">完成</button>
+          </div>
+        </div>`, () => done());
+      hydrateImages(overlay);
+      const box = $('.sl-dialog', overlay);
+      const vIn = $('[data-k="value"]', box), qIn = $('[data-k="qty"]', box);
+      const totalEl = $('.sl-spec-calc:not(.sl-spec-pricerow) .sl-spec-total b', box);
+      const pIn = $('[data-k="price"]', box);
+      const upEl = $('.sl-spec-unitp b', box);
+      const customBox = $('.sl-se-custom', box), customIn = $('input', customBox);
+      let closed = false;
+      function paintTotal() {
+        const t = specTotal({ spec: { value: vIn.value, qty: qIn.value } });
+        totalEl.textContent = t != null ? fmtNum(t) + (g.unit ? ' ' + g.unit : '') : '—';
+        const linked = specPriceOf(it);
+        const price = linked && linked.linked ? linked.price : (pIn ? toNum(pIn.value) : null);
+        upEl.textContent = t && price ? fmtUnitPrice(price / t, g.unit) : '—';
+      }
+      function bindChips() {
+        $$('.sl-uchip[data-unit]', box).forEach(b => {
+          b.onclick = () => setUnit(g.unit === b.dataset.unit ? '' : b.dataset.unit);
+        });
+        const add = $('[data-unit-custom]', box);
+        add.onclick = () => { customBox.hidden = !customBox.hidden; if (!customBox.hidden) customIn.focus(); };
+      }
+      async function setUnit(u) {
+        g.unit = u || '';
+        await dbPut('specGroups', g);
+        $('.sl-se-units', box).innerHTML = unitChipsHTML(g.unit, false);
+        bindChips();
+        const on = $('.sl-uchip.on', box);
+        if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
+        paintTotal();
+      }
+      async function applyCustom() {
+        const u = customIn.value.trim();
+        if (!u) { customIn.focus(); return; }
+        customIn.value = '';
+        customBox.hidden = true;
+        await setUnit(u);
+      }
+      async function save() {
+        it.spec = { value: vIn.value.trim(), qty: qIn.value.trim() };
+        if (pIn) it.specPrice = pIn.value.trim();
+        await dbPut('items', it);
+      }
+      async function done() {
+        if (closed) return;
+        closed = true;
+        if (document.activeElement) document.activeElement.blur();
+        await save();
+        hideOverlay();
+        refreshAfterCompare(it);
+        resolve();
+      }
+      vIn.oninput = qIn.oninput = paintTotal;
+      if (pIn) {
+        pIn.oninput = paintTotal;
+        pIn.onkeydown = e => { if (isEnter(e)) { e.preventDefault(); done(); } };
+      }
+      vIn.onkeydown = e => { if (isEnter(e)) { e.preventDefault(); qIn.focus(); } };
+      qIn.onkeydown = e => { if (isEnter(e)) { e.preventDefault(); if (pIn) pIn.focus(); else done(); } };
+      customIn.onkeydown = e => { if (isEnter(e)) { e.preventDefault(); applyCustom(); } };
+      $('[data-r="unit-ok"]', box).onclick = applyCustom;
+      $('[data-r="ok"]', box).onclick = done;
+      bindChips();
+      paintTotal();
+      const on = $('.sl-uchip.on', box);
+      if (on) on.scrollIntoView({ inline: 'center', block: 'nearest' });
+    });
+  }
+
+  // 單位選擇視窗（從規格比較分頁開啟）
+  function unitPicker(g) {
+    return new Promise(resolve => {
+      let sel = g.unit || '';
+      showOverlay(`
+        <div class="sl-dialog sl-wide" role="dialog" aria-modal="true">
+          <h3>「${esc(g.name)}」的單位</h3>
+          <p>點選常用單位，或在下方自訂</p>
+          <div class="sl-up-groups"></div>
+          <div class="sl-inline" style="margin-top:12px">
+            <input class="sl-field" type="text" placeholder="自訂單位，例如：粒、瓶" enterkeyhint="done" autocomplete="off">
+            <button type="button" class="sl-mini-btn" data-r="new">套用</button>
+          </div>
+          <div class="sl-dialog-btns">
+            <button type="button" data-r="cancel">取消</button>
+            <button type="button" data-r="ok" class="strong">儲存</button>
+          </div>
+        </div>`, () => done(null));
+      const wrap = $('.sl-up-groups', overlay);
+      const input = $('.sl-inline input', overlay);
+      function paint() {
+        wrap.innerHTML = unitChipsHTML(sel, true) + (sel && !PRESET_SET.has(sel) && !customUnits().includes(sel)
+          ? `<div class="sl-ugroup"><span class="sl-ulabel">自訂</span><div class="sl-uchips"><button type="button" class="sl-uchip on" data-unit="${esc(sel)}">${esc(sel)}</button></div></div>` : '');
+        $$('.sl-uchip[data-unit]', wrap).forEach(b => { b.onclick = () => { sel = sel === b.dataset.unit ? '' : b.dataset.unit; paint(); }; });
+      }
+      function applyCustom() { const u = input.value.trim(); if (!u) { input.focus(); return; } sel = u; input.value = ''; input.blur(); paint(); }
+      function done(v) { input.blur(); hideOverlay(); resolve(v); }
+      $('[data-r="new"]', overlay).onclick = applyCustom;
+      input.onkeydown = e => { if (isEnter(e)) { e.preventDefault(); applyCustom(); } };
+      $('[data-r="cancel"]', overlay).onclick = () => done(null);
+      $('[data-r="ok"]', overlay).onclick = () => done(sel);
+      paint();
+    });
+  }
+
+  async function setSpecUnit(gid) {
+    const g = specGroupById(gid);
+    if (!g) return;
+    const u = await unitPicker(g);
+    if (u === null) return;
+    g.unit = u;
+    await dbPut('specGroups', g);
+    renderCompare();
+  }
+
+  function renderSpec() {
+    const main = $('[data-page="spec"] .sl-list');
+    if (!main) return;
+    specSummary();
+    if (!state.specGroups.length) {
+      main.innerHTML = `
+        <div class="sl-empty">
+          <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">${ICON.ruler.replace(/^<svg[^>]*>|<\/svg>$/g, '')}</svg>
+          <h2>還沒有規格群組</h2>
+          <p>先建立群組（例如「衛生紙」），<br>再到購物清單點商品縮圖右下角的尺加入。</p>
+          <button class="sl-btn-pill" data-act="add-spec-group">${ICON.plusSm}新增第一個群組</button>
+        </div>`;
+      return;
+    }
+    main.innerHTML = state.specGroups.map(specGroupHTML).join('');
+    hydrateImages(main);
+    state.specGroups.forEach(g => updateSpecGroup(g.id));
+  }
+
+  function specGroupHTML(g) {
+    const ms = itemsIn('spec', g.id);
+    return `
+      <section class="sl-cat sl-sgroup${g.collapsed ? ' collapsed' : ''}" data-sgroup="${g.id}">
+        <div class="sl-cat-head">
+          <div class="sl-cat-toggle" data-act="g-collapse" role="button" tabindex="0" aria-expanded="${!g.collapsed}">
+            ${ICON.chev}
+            <span class="sl-cat-name">${esc(g.name)}</span>
+            <label class="sl-target" aria-label="比較目標">
+              <select data-sgtarget="${g.id}">
+                <option value="total"${g.target !== 'unit' ? ' selected' : ''}>比總量</option>
+                <option value="unit"${g.target === 'unit' ? ' selected' : ''}>比單位價格</option>
+              </select>
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+            </label>
+          </div>
+          <button class="sl-unit-chip${g.unit ? ' set' : ''}" data-act="set-unit">${g.unit ? '單位：' + esc(g.unit) : '＋單位'}</button>
+          <button class="sl-icon-btn" data-act="spec-group-menu" aria-label="群組選項">${ICON.more}</button>
+        </div>
+        <div class="sl-g-best" hidden></div>
+        ${ms.length
+          ? `<ul class="sl-specs">${ms.map(specRowHTML).join('')}</ul>`
+          : `<p class="sl-g-empty">到購物清單點商品縮圖右下角的 <span class="sl-inline-ic">${ICON.ruler}</span> 加入這個群組</p>`}
+      </section>`;
+  }
+
+  function specRowHTML(m) {
+    const sp = m.spec || {};
+    return `
+      <li class="sl-spec-row" data-id="${m.id}">
+        <div class="sl-spec-top">
+          <button type="button" class="sl-m-thumb sl-thumb-btn" data-act="open-detail" aria-label="查看 ${esc(m.name)} 的細項">
+            ${m.images && m.images[0] ? `<img data-img="${m.images[0]}" alt="">` : ICON.tileEmpty}
+          </button>
+          <span class="sl-m-name">${catLabel(m)}${esc(m.name)}</span>
+          <span class="sl-spec-tag"></span>
+          <button type="button" class="sl-icon-btn sl-spec-more" data-act="spec-menu" aria-label="更多選項">${ICON.more}</button>
+        </div>
+        <div class="sl-spec-grid">
+          <label class="sl-spec-f"><small>比較數值</small>
+            <input class="sl-spec-in" data-k="value" type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" value="${esc(sp.value ?? '')}" placeholder="例 2000"></label>
+          <span class="sl-op">×</span>
+          <label class="sl-spec-f"><small>單一數量</small>
+            <input class="sl-spec-in" data-k="qty" type="text" inputmode="decimal" enterkeyhint="next" autocomplete="off" value="${esc(sp.qty ?? '')}" placeholder="例 3"></label>
+          <span class="sl-op">=</span>
+          <span class="sl-spec-total"><small>總量</small><b>—</b></span>
+          ${specPriceCellHTML(m)}
+        </div>
+        <div class="sl-spec-foot"><span class="sl-spec-unitp">單位價格<b>—</b></span></div>
+      </li>`;
+  }
+
+  // 價格欄：連動比價（點了可編輯比價價格）或手動填入
+  function specPriceCellHTML(m) {
+    const p = specPriceOf(m);
+    return p && p.linked
+      ? `<button type="button" class="sl-sp-linked" data-act="spec-edit-price" aria-label="編輯比價價格">
+           <small>價格・比價</small>
+           <b><i>$</i>${fmtNum(p.price)}</b>
+         </button>`
+      : `<label class="sl-spec-f sl-sp-field"><small>價格</small>
+           <span class="sl-sp-wrap"><i>$</i><input class="sl-spec-in" data-k="price" type="text" inputmode="decimal" enterkeyhint="done" autocomplete="off" value="${esc(m.specPrice ?? '')}" placeholder="選填"></span></label>`;
+  }
+
+  // 只更新數字與標記，不重畫輸入框（打字時不會跳掉）
+  function updateSpecGroup(gid) {
+    const sec = $(`[data-page="spec"] .sl-sgroup[data-sgroup="${gid}"]`);
+    const g = specGroupById(gid);
+    if (!sec || !g) return;
+    const unit = g.unit || '';
+    const win = specWinner(gid);
+    const tagText = !win ? '' : win.kind === 'value' ? '最划算' : (g.better === 'min' ? '總量最少' : '總量最多');
+    $$('.sl-spec-row', sec).forEach(row => {
+      const m = itemById(row.dataset.id);
+      if (!m) return;
+      const t = specTotal(m), up = specUnitPrice(m);
+      $('.sl-spec-total b', row).textContent = t != null ? fmtNum(t) + (unit ? ' ' + unit : '') : '—';
+      const upEl = $('.sl-spec-unitp b', row);
+      upEl.textContent = up != null ? fmtUnitPrice(up, unit) : '—';
+      row.classList.toggle('target-unit', g.target === 'unit');
+      const isW = !!win && win.item === m;
+      row.classList.toggle('best', isW && win.kind === 'amount');
+      row.classList.toggle('best-value', isW && win.kind === 'value');
+      $('.sl-spec-tag', row).innerHTML = isW ? `<span class="sl-best-tag">${ICON.crown}${tagText}</span>` : '';
+    });
+    const box = $('.sl-g-best', sec);
+    if (!win) {
+      const needPrice = g.target === 'unit' && itemsIn('spec', gid).length >= 2;
+      box.hidden = !needPrice;
+      box.innerHTML = needPrice ? `<span class="sl-g-best-ic">${ICON.crown}</span><span>比單位價格需要兩項以上都填好規格與價格</span>` : '';
+      return;
+    }
+    const w = win.item, wp = specPriceOf(w);
+    box.hidden = false;
+    box.innerHTML = win.kind === 'value'
+      ? `<span class="sl-g-best-ic">${ICON.crown}</span>
+         <span>最划算：<b>${esc(catText(w) + w.name)}</b><br><small>${fmt(wp.price)}${wp.store ? '（' + esc(wp.store) + '）' : ''}・總量 ${fmtNum(specTotal(w))}${esc(unit)}</small></span>
+         <span class="sl-g-best-p sm">${fmtUnitPrice(specUnitPrice(w), unit)}</span>`
+      : `<span class="sl-g-best-ic">${ICON.crown}</span>
+         <span>${tagText}：<b>${esc(catText(w) + w.name)}</b><br><small>${esc(w.spec.value)}${esc(unit)} × ${esc(w.spec.qty)}</small></span>
+         <span class="sl-g-best-p sm">${fmtNum(specTotal(w))} ${esc(unit)}</span>`;
+  }
+
+  async function addSpecGroup() {
+    const name = await ask({ title: '新增規格比較群組', placeholder: '例如：衛生紙、牛奶', okText: '新增' });
+    if (!name) return;
+    if (state.specGroups.find(g => g.name === name)) { toast('已有同名群組'); return; }
+    const g = await createGroup(name, 'spec');
+    renderCompare();
+    setSpecUnit(g.id); // 建立後直接選單位
+  }
+
+  async function specGroupMenu(gid) {
+    const g = specGroupById(gid);
+    if (!g) return;
+    const ms = itemsIn('spec', gid);
+    const choice = await actionSheet(g.name, [
+      { label: '重新命名', value: 'rename' },
+      { label: g.unit ? `更改單位（目前：${g.unit}）` : '設定單位', value: 'unit' },
+      { label: g.better === 'min' ? '改為：總量越多越好' : '改為：總量越少越好', value: 'better' },
+      { label: '刪除群組', value: 'delete', danger: true }
+    ]);
+    if (choice === 'rename') {
+      const name = await ask({ title: '重新命名群組', value: g.name, okText: '儲存' });
+      if (!name) return;
+      g.name = name;
+      await dbPut('specGroups', g);
+      renderCompare();
+    }
+    if (choice === 'unit') setSpecUnit(gid);
+    if (choice === 'better') {
+      g.better = g.better === 'min' ? 'max' : 'min';
+      await dbPut('specGroups', g);
+      renderCompare();
+      toast(g.better === 'min' ? '改為標示總量最少的' : '改為標示總量最多的');
+    }
+    if (choice === 'delete') {
+      const ok = await confirmBox({ title: `刪除「${g.name}」？`, message: ms.length ? `${ms.length} 項商品會移出規格比較（購物清單裡的品項不會被刪除）。` : '', okText: '刪除', danger: true });
+      if (!ok) return;
+      for (const m of ms) { m.specGroupId = null; await dbPut('items', m); renderItems(m.catId); }
+      state.specGroups = state.specGroups.filter(x => x.id !== gid);
+      await dbDel('specGroups', gid);
+      renderCompare();
+    }
+  }
+
+  async function specMemberMenu(id) {
+    const m = itemById(id);
+    if (!m) return;
+    const choice = await actionSheet(catText(m) + m.name, [
+      { label: '編輯規格與價格', value: 'edit' },
+      { label: '換到其他群組', value: 'move' },
+      { label: '移出群組', value: 'remove', danger: true }
+    ]);
+    if (choice === 'edit') specEditor(m);
+    if (choice === 'move') specFlow(id);
+    if (choice === 'remove') { m.specGroupId = null; await dbPut('items', m); refreshAfterCompare(m); toast('已移出群組'); }
+  }
+
+  const specTimers = new Map();
+  root.addEventListener('input', e => {
+    const t = e.target;
+    if (!t.matches('.sl-specs .sl-spec-in')) return;
+    const m = itemById(t.closest('.sl-spec-row').dataset.id);
+    if (!m) return;
+    if (t.dataset.k === 'price') m.specPrice = t.value.trim();
+    else m.spec = Object.assign({}, m.spec, { [t.dataset.k]: t.value.trim() });
+    clearTimeout(specTimers.get(m.id));
+    specTimers.set(m.id, setTimeout(() => dbPut('items', m), 400));
+    updateSpecGroup(m.specGroupId);
+    specSummary();
+  });
+  root.addEventListener('change', async e => {
+    const sel = e.target.closest && e.target.closest('select[data-sgtarget]');
+    if (!sel) return;
+    const g = specGroupById(sel.dataset.sgtarget);
+    if (!g) return;
+    g.target = sel.value;
+    await dbPut('specGroups', g);
+    updateSpecGroup(g.id);
+  });
+  // 離開輸入框時立即存檔，並更新購物清單上的總量標籤
+  root.addEventListener('change', e => {
+    if (!e.target.matches('.sl-specs .sl-spec-in')) return;
+    const m = itemById(e.target.closest('.sl-spec-row').dataset.id);
+    if (m) { clearTimeout(specTimers.get(m.id)); dbPut('items', m); renderItems(m.catId); }
+  });
+  root.addEventListener('keydown', e => {
+    const t = e.target;
+    if (!t.matches || !t.matches('.sl-specs .sl-spec-in') || !isEnter(e)) return;
+    e.preventDefault();
+    const next = { value: 'qty', qty: 'price' }[t.dataset.k];
+    const nextEl = next && $(`.sl-spec-in[data-k="${next}"]`, t.closest('.sl-spec-row'));
+    if (nextEl) nextEl.focus(); else t.blur();
+  });
+
+  /* ---------------- 底部 Tab Bar ---------------- */
+  const scrollMemo = {};
+  let currentTab = 'list';
+  function switchTab(name, instant) {
+    if (name === currentTab && !instant) {
+      window.scrollTo({ top: 0, behavior: 'smooth' }); // 再點一次同分頁 → 回到頂端
+      return;
+    }
+    scrollMemo[currentTab] = window.scrollY;
+    currentTab = name;
+    if (name === 'compare' || name === 'spec') renderCompare();
+    $$('.sl-page').forEach(p => { p.hidden = p.dataset.page !== name; });
+    $$('.sl-tab').forEach(t => t.setAttribute('aria-selected', String(t.dataset.tab === name)));
+    window.scrollTo(0, scrollMemo[name] || 0);
+    try { localStorage.setItem('sl-tab', name); } catch (e) {}
+  }
+  $$('.sl-tab').forEach(t => t.addEventListener('click', () => switchTab(t.dataset.tab)));
+  try { const saved = localStorage.getItem('sl-tab'); if (saved && saved !== 'list' && $(`.sl-page[data-page="${saved}"]`)) switchTab(saved, true); } catch (e) {}
+
+  /* ---------------- 事件 ---------------- */
+  root.addEventListener('click', e => {
+    const el = e.target.closest('[data-act]');
+    if (!el || !root.contains(el)) return;
+    const sec = el.closest('.sl-cat');
+    const li = el.closest('.sl-item');
+    switch (el.dataset.act) {
+      case 'add-cat': addCategory(); break;
+      case 'add-item': submitAddRow(el.closest('.sl-add')); break;
+      case 'compare': compareFlow(li.dataset.id); break;
+      case 'd-compare': compareFlow(currentId); break;
+      case 'add-group': addGroupFromPage(); break;
+      case 'group-menu': groupMenu(el.closest('.sl-group').dataset.group); break;
+      case 'edit-price': { const m = itemById(el.closest('.sl-member').dataset.id); if (m) priceEditor(m); break; }
+      case 'member-menu': memberMenu(el.closest('.sl-member').dataset.id); break;
+      case 'g-collapse': {
+        if (e.target.closest('.sl-target')) break; // 點下拉選單時不收合
+        const sec = el.closest('.sl-group, .sl-sgroup');
+        const isSpec = sec.classList.contains('sl-sgroup');
+        const g = isSpec ? specGroupById(sec.dataset.sgroup) : groupById(sec.dataset.group);
+        if (!g) break;
+        g.collapsed = !g.collapsed;
+        dbPut(isSpec ? 'specGroups' : 'groups', g);
+        sec.classList.toggle('collapsed', g.collapsed);
+        el.setAttribute('aria-expanded', String(!g.collapsed));
+        break;
+      }
+      case 'open-detail': openDetail(el.closest('[data-id]').dataset.id); break;
+      case 'spec-edit-price': { const m = itemById(el.closest('.sl-spec-row').dataset.id); if (m) priceEditor(m); break; }
+      case 'spec-menu': specMemberMenu(el.closest('.sl-spec-row').dataset.id); break;
+      case 'set-unit': setSpecUnit(el.closest('.sl-sgroup').dataset.sgroup); break;
+      case 'spec-group-menu': specGroupMenu(el.closest('.sl-sgroup').dataset.sgroup); break;
+      case 'add-spec-group': addSpecGroup(); break;
+      case 'spec': specFlow(li.dataset.id); break;
+      case 'd-spec': specFlow(currentId); break;
+      case 'collapse': toggleCollapse(sec.dataset.cat); break;
+      case 'cat-menu': catMenu(sec.dataset.cat); break;
+      case 'open': openDetail(li.dataset.id); break;
+      case 'back': closeDetail(); break;
+      case 'add-photo': $('.sl-file').click(); break;
+      case 'view': openViewer(+el.dataset.index || 0); break;
+      case 'close-viewer': closeViewer(); break;
+      case 'delete-photo': deleteViewerPhoto(); break;
+      case 'cover': setCover(); break;
+      case 'delete-item': deleteCurrentItem(); break;
+    }
+  });
+
+  root.addEventListener('change', e => {
+    const t = e.target;
+    if (t.matches('.sl-item input[type="checkbox"]')) {
+      const li = t.closest('.sl-item');
+      toggleFromList(li.dataset.id, t.checked, li);
+    } else if (t === doneSwitch) {
+      const it = itemById(currentId);
+      if (it) setDone(it, t.checked);
+    } else if (t.matches('.sl-file')) {
+      const files = Array.from(t.files || []);
+      t.value = '';
+      addPhotos(files);
+    }
+  });
+
+  // 注音／拼音選字中按 Enter 不算送出
+  function isEnter(e) { return e.key === 'Enter' && !e.isComposing && e.keyCode !== 229; }
+
+  function submitAddRow(row) {
+    const input = $('input', row);
+    const name = input.value.trim();
+    if (!name) { input.focus(); return; }
+    addItem(row.dataset.cat, name);
+    input.value = '';
+    input.focus(); // 保持鍵盤開啟，方便連續輸入
+  }
+  root.addEventListener('keydown', e => {
+    if (!isEnter(e) || !e.target.matches('.sl-add input')) return;
+    e.preventDefault();
+    submitAddRow(e.target.closest('.sl-add'));
+  });
+  // 按「加入」時避免輸入框先失去焦點（鍵盤收起）
+  root.addEventListener('pointerdown', e => { if (e.target.closest('[data-act="add-item"], [data-r="ok"], [data-r="add"], [data-r="new"], [data-r="unit-ok"]')) e.preventDefault(); });
+
+  nameInput.addEventListener('input', saveSoon);
+  nameInput.addEventListener('keydown', e => { if (isEnter(e)) nameInput.blur(); });
+  noteInput.addEventListener('input', () => { autoGrow(); saveSoon(); });
+
+  // App 切到背景時立即存檔
+  document.addEventListener('visibilitychange', () => { if (document.hidden && currentId) flushDetail(); });
+  window.addEventListener('pagehide', () => { if (currentId) flushDetail(); });
+
+  /* ---------------- 啟動 ---------------- */
+  (async function init() {
+    try {
+      db = await openDB();
+    } catch (err) {
+      console.warn('本機資料庫無法使用，改用暫存模式：', err);
+      db = null;
+      setTimeout(() => toast('預覽模式：資料不會被保存', 3500), 300);
+    }
+    try {
+      const [cats, items, groups, specGroups] = await Promise.all([dbAll('cats'), dbAll('items'), dbAll('groups'), dbAll('specGroups')]);
+      state.groups = groups.sort((a, b) => a.order - b.order);
+      state.specGroups = specGroups.sort((a, b) => a.order - b.order);
+      state.cats = cats.sort((a, b) => a.order - b.order);
+      state.items = items;
+      await migrateSpecGroups();
+      renderAll();
+      // 請求「持久儲存」，降低 iOS 自動清除資料的機率
+      if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
+    } catch (err) {
+      console.error(err);
+      $('[data-page="list"] .sl-list').innerHTML = '<div class="sl-empty"><h2>資料讀取失敗</h2><p>請重新整理頁面再試一次。</p></div>';
+    }
+  })();
+})();
+</script>
+</body>
+</html>
