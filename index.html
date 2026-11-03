@@ -325,6 +325,63 @@ html, body { margin: 0; background: #fbf1e7; }
 
 /* ---------- 全螢幕看圖 ---------- */
 .sl-photo-acts { display: flex; gap: 14px; }
+/* ---------- 資料夾（iPhone 風格） ---------- */
+.sl-folders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 12px; padding: 2px 4px 6px; }
+.sl-folder { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; }
+.sl-folder:active .sl-folder-box { transform: scale(.94); }
+.sl-folder-box {
+  position: relative; width: 100%; aspect-ratio: 1 / 1; border-radius: 26px; padding: 12%;
+  background: color-mix(in srgb, var(--card) 70%, var(--chip));
+  border: 1.5px solid rgba(255, 255, 255, .8);
+  box-shadow: 0 8px 20px rgba(139, 90, 60, .13), inset 0 1px 0 rgba(255,255,255,.9);
+  transition: transform .15s;
+}
+.sl-folder-grid { display: grid; grid-template-columns: repeat(3, 1fr); grid-auto-rows: 1fr; gap: 9%; width: 100%; height: 100%; }
+.sl-mini {
+  display: grid; place-items: center; width: 100%; aspect-ratio: 1 / 1; border-radius: 26%; overflow: hidden;
+  background: var(--fill); font-size: 13px; font-weight: 700; line-height: 1;
+}
+.sl-mini img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.sl-mini-t[data-tone="0"] { background: #e8b48f; color: #fff; }
+.sl-mini-t[data-tone="1"] { background: #c88a5e; color: #fff; }
+.sl-mini-t[data-tone="2"] { background: #f2d2b6; color: #8b5a3c; }
+.sl-mini-t[data-tone="3"] { background: #a8735a; color: #fff; }
+.sl-folder-empty { grid-column: 1 / -1; grid-row: 1 / -1; display: grid; place-items: center; font-size: 12px; color: var(--sub); }
+.sl-folder-badge {
+  position: absolute; top: -7px; right: -7px; min-width: 24px; height: 24px; padding: 0 7px; border-radius: 999px;
+  display: grid; place-items: center; background: var(--danger); color: #fff; font-size: 12px; font-weight: 700;
+  border: 2px solid var(--bg); font-variant-numeric: tabular-nums;
+}
+.sl-folder-name { max-width: 100%; font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.sl-fpanel { position: fixed; inset: 0; z-index: 18; visibility: hidden; transition: visibility 0s linear .28s; }
+.sl-fpanel.open { visibility: visible; transition: visibility 0s; }
+.sl-fpanel-bg {
+  position: absolute; inset: 0; background: rgba(74, 51, 38, .28);
+  -webkit-backdrop-filter: blur(18px) saturate(140%); backdrop-filter: blur(18px) saturate(140%);
+  opacity: 0; transition: opacity .25s;
+}
+.sl-fpanel.open .sl-fpanel-bg { opacity: 1; }
+.sl-fpanel-sheet {
+  position: absolute; left: 12px; right: 12px; top: calc(env(safe-area-inset-top) + 44px); bottom: calc(env(safe-area-inset-bottom) + 20px);
+  max-width: 640px; margin: 0 auto; display: flex; flex-direction: column;
+  opacity: 0; transform: scale(.88); transition: opacity .25s, transform .3s cubic-bezier(.3,1.25,.5,1);
+}
+.sl-fpanel.open .sl-fpanel-sheet { opacity: 1; transform: none; }
+.sl-fpanel-head { display: flex; align-items: center; gap: 6px; padding: 0 4px 12px 8px; }
+.sl-fpanel-title { flex: 1; min-width: 0; margin: 0; font-size: 28px; font-weight: 700; color: #fff; text-shadow: 0 2px 10px rgba(74,51,38,.35); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sl-fpanel-btn { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; background: rgba(255,250,245,.85); color: var(--accent); }
+.sl-fpanel-body {
+  flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; -webkit-overflow-scrolling: touch;
+  display: flex; flex-direction: column; gap: 14px; padding: 14px; border-radius: 30px;
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  box-shadow: 0 20px 50px rgba(74, 51, 38, .25);
+}
+.sl-fpanel-empty { padding: 30px 16px 10px; text-align: center; color: var(--sub); font-size: 14px; line-height: 1.7; }
+.sl-fpanel-add {
+  flex: none; display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 50px; border-radius: 18px;
+  border: 1.5px dashed var(--border); color: var(--accent); font-size: 15px; background: var(--card);
+}
 /* ---------- 照片裁切 ---------- */
 .sl-crop {
   position: fixed; inset: 0; z-index: 50; display: flex; flex-direction: column;
@@ -680,6 +737,9 @@ html, body { margin: 0; background: #fbf1e7; }
         <button class="sl-hero-icon" data-act="data-menu" aria-label="匯出與匯入">
           <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 15V3M7 8l5-5 5 5"/><path d="M5 12v7a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-7"/></svg>
         </button>
+        <button class="sl-hero-icon" data-act="add-folder" aria-label="新增資料夾">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M12 11v5M9.5 13.5h5"/></svg>
+        </button>
         <button class="sl-btn-pill" data-act="add-cat" aria-label="新增類別">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>類別
         </button>
@@ -798,6 +858,23 @@ html, body { margin: 0; background: #fbf1e7; }
     </div>
   </div>
 
+  <!-- 資料夾展開畫面 -->
+  <div class="sl-fpanel" aria-hidden="true">
+    <div class="sl-fpanel-bg" data-act="close-folder"></div>
+    <div class="sl-fpanel-sheet" role="dialog" aria-modal="true">
+      <div class="sl-fpanel-head">
+        <h2 class="sl-fpanel-title"></h2>
+        <button type="button" class="sl-fpanel-btn" data-act="folder-menu" aria-label="資料夾選項">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="19" cy="12" r="2"/></svg>
+        </button>
+        <button type="button" class="sl-fpanel-btn" data-act="close-folder" aria-label="關閉資料夾">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        </button>
+      </div>
+      <div class="sl-fpanel-body"></div>
+    </div>
+  </div>
+
   <!-- 照片裁切 -->
   <div class="sl-crop" aria-hidden="true">
     <div class="sl-crop-top">
@@ -881,7 +958,7 @@ html, body { margin: 0; background: #fbf1e7; }
   let db;
   function openDB() {
     return new Promise((resolve, reject) => {
-      const r = indexedDB.open(CONFIG.dbName, 3);   // v2：比價群組／v3：規格比較群組
+      const r = indexedDB.open(CONFIG.dbName, 4);   // v2：比價群組／v3：規格比較群組／v4：資料夾
       r.onupgradeneeded = () => {
         const d = r.result;
         const has = n => d.objectStoreNames.contains(n);
@@ -890,6 +967,7 @@ html, body { margin: 0; background: #fbf1e7; }
         if (!has('images')) d.createObjectStore('images', { keyPath: 'id' });
         if (!has('groups')) d.createObjectStore('groups', { keyPath: 'id' });
         if (!has('specGroups')) d.createObjectStore('specGroups', { keyPath: 'id' });
+        if (!has('folders')) d.createObjectStore('folders', { keyPath: 'id' });
       };
       r.onsuccess = () => resolve(r.result);
       r.onerror = () => reject(r.error);
@@ -904,7 +982,7 @@ html, body { margin: 0; background: #fbf1e7; }
     });
   }
   // 若瀏覽器不允許本機資料庫（例如預覽沙盒、私密瀏覽），改用暫存記憶體，功能照常但不會保存
-  const mem = { cats: new Map(), items: new Map(), images: new Map(), groups: new Map(), specGroups: new Map() };
+  const mem = { cats: new Map(), items: new Map(), images: new Map(), groups: new Map(), specGroups: new Map(), folders: new Map() };
   const dbAll = s => db ? run(s, 'readonly', o => o.getAll()) : Promise.resolve([...mem[s].values()]);
   const dbGet = (s, id) => db ? run(s, 'readonly', o => o.get(id)) : Promise.resolve(mem[s].get(id));
   const dbPut = (s, v) => db ? run(s, 'readwrite', o => o.put(v)).catch(onDbError) : Promise.resolve(void mem[s].set(v.id, v));
@@ -927,7 +1005,9 @@ html, body { margin: 0; background: #fbf1e7; }
   }
 
   /* ---------------- 資料 ---------------- */
-  const state = { cats: [], items: [], groups: [], specGroups: [] };
+  const state = { cats: [], items: [], groups: [], specGroups: [], folders: [] };
+  /* 資料夾（像 iPhone 的 App 資料夾）：folders: [{ id, name, order }]，cat.folderId → 所屬資料夾 */
+  let openFolderId = null;
   /* 規格比較資料（與比價分開管理）：
      specGroups: [{ id, name, order, unit, better: 'max' | 'min' }]
      item.specGroupId → 所屬規格群組
@@ -1001,9 +1081,13 @@ html, body { margin: 0; background: #fbf1e7; }
   }
 
   /* ---------------- 畫面：主清單 ---------------- */
+  const folderById = id => state.folders.find(f => f.id === id);
+  const inFolder = c => !!(c.folderId && folderById(c.folderId));
+  const catsInFolder = fid => state.cats.filter(c => c.folderId === fid);
+
   function renderAll() {
     const list = $('[data-page="list"] .sl-list');
-    if (!state.cats.length) {
+    if (!state.cats.length && !state.folders.length) {
       list.innerHTML = `
         <div class="sl-empty">
           ${ICON.cart}
@@ -1012,11 +1096,131 @@ html, body { margin: 0; background: #fbf1e7; }
           <button class="sl-btn-pill" data-act="add-cat">${ICON.plusSm}新增第一個類別</button>
         </div>`;
     } else {
-      list.innerHTML = state.cats.map(catHTML).join('');
-      state.cats.forEach(c => renderItems(c.id));
+      const loose = state.cats.filter(c => !inFolder(c));
+      list.innerHTML =
+        (state.folders.length ? `<div class="sl-folders">${state.folders.map(folderTileHTML).join('')}</div>` : '') +
+        loose.map(catHTML).join('');
+      loose.forEach(c => renderItems(c.id));
+      hydrateImages(list);
     }
+    renderFolderPanel();
     renderSummary();
     renderCompare();
+  }
+
+  /* ---------------- 資料夾 ---------------- */
+  // 資料夾圖示：裡面每個類別是一個小格子（有照片用第一張，沒有就用類別名稱第一個字）
+  function folderTileHTML(f) {
+    const cats = catsInFolder(f.id);
+    const left = state.items.filter(i => !i.done && cats.some(c => c.id === i.catId)).length;
+    const minis = cats.slice(0, 9).map((c, k) => {
+      const withImg = sortedItems(c.id).find(i => i.images && i.images[0]);
+      return withImg
+        ? `<span class="sl-mini"><img data-img="${withImg.images[0]}" alt=""></span>`
+        : `<span class="sl-mini sl-mini-t" data-tone="${k % 4}">${esc([...c.name][0] || '?')}</span>`;
+    }).join('');
+    return `
+      <button type="button" class="sl-folder" data-act="open-folder" data-folder="${f.id}" aria-label="打開資料夾 ${esc(f.name)}">
+        <span class="sl-folder-box">
+          <span class="sl-folder-grid">${minis || `<span class="sl-folder-empty">空的</span>`}</span>
+          ${left ? `<span class="sl-folder-badge">${left > 999 ? '999+' : left}</span>` : ''}
+        </span>
+        <span class="sl-folder-name">${esc(f.name)}</span>
+      </button>`;
+  }
+  function refreshFolderTiles() {
+    $$('[data-page="list"] .sl-folders .sl-folder').forEach(el => {
+      const f = folderById(el.dataset.folder);
+      if (!f) return;
+      const tmp = document.createElement('div');
+      tmp.innerHTML = folderTileHTML(f);
+      const fresh = tmp.firstElementChild;
+      el.replaceWith(fresh);
+      hydrateImages(fresh);
+    });
+  }
+
+  function openFolder(fid) {
+    if (!folderById(fid)) return;
+    openFolderId = fid;
+    renderFolderPanel();
+    const fp = $('.sl-fpanel');
+    fp.classList.add('open');
+    fp.setAttribute('aria-hidden', 'false');
+    $('.sl-fpanel-body').scrollTop = 0;
+  }
+  function closeFolder() {
+    const fp = $('.sl-fpanel');
+    fp.classList.remove('open');
+    fp.setAttribute('aria-hidden', 'true');
+    openFolderId = null;
+    if (document.activeElement && fp.contains(document.activeElement)) document.activeElement.blur();
+    setTimeout(() => { if (!openFolderId) $('.sl-fpanel-body').innerHTML = ''; }, 300);
+    refreshFolderTiles();
+  }
+  function renderFolderPanel() {
+    if (!openFolderId) return;
+    const f = folderById(openFolderId);
+    if (!f) { closeFolder(); return; }
+    const cats = catsInFolder(f.id);
+    $('.sl-fpanel-title').textContent = f.name;
+    $('.sl-fpanel-body').innerHTML =
+      (cats.length ? cats.map(catHTML).join('') : `<div class="sl-fpanel-empty">這個資料夾還沒有類別。<br>可以在下方新增，或在其他類別的「⋯」選單選「移到資料夾」。</div>`) +
+      `<button type="button" class="sl-fpanel-add" data-act="add-cat-folder">${ICON.plusSm}在「${esc(f.name)}」新增類別</button>`;
+    cats.forEach(c => renderItems(c.id));
+  }
+
+  async function addFolder() {
+    const name = await ask({ title: '新增資料夾', placeholder: '例如：便利商店、藥妝店', okText: '新增' });
+    if (!name) return;
+    const f = await createGroup(name, 'folder');
+    renderAll();
+    openFolder(f.id);
+  }
+  async function moveCatToFolder(catId) {
+    const c = catById(catId);
+    if (!c) return;
+    const r = await pickGroup(c, 'folder');
+    if (r === null) return;
+    c.folderId = r === '__remove' ? null : r;
+    await dbPut('cats', c);
+    renderAll();
+    toast(r === '__remove' ? '已移出資料夾' : `已移到「${folderById(r).name}」`);
+  }
+  async function folderMenu() {
+    const f = folderById(openFolderId);
+    if (!f) return;
+    const cats = catsInFolder(f.id);
+    const idx = state.folders.indexOf(f);
+    const choice = await actionSheet(f.name, [
+      { label: '重新命名', value: 'rename' },
+      { label: '往前移', value: 'up', disabled: idx === 0 },
+      { label: '往後移', value: 'down', disabled: idx === state.folders.length - 1 },
+      { label: '解散資料夾（類別保留）', value: 'ungroup', danger: true }
+    ]);
+    if (choice === 'rename') {
+      const name = await ask({ title: '重新命名資料夾', value: f.name, okText: '儲存' });
+      if (!name) return;
+      f.name = name;
+      await dbPut('folders', f);
+      renderAll();
+    }
+    if (choice === 'up' || choice === 'down') {
+      const other = state.folders[idx + (choice === 'up' ? -1 : 1)];
+      [f.order, other.order] = [other.order, f.order];
+      state.folders.sort((a, b) => a.order - b.order);
+      await Promise.all([dbPut('folders', f), dbPut('folders', other)]);
+      renderAll();
+    }
+    if (choice === 'ungroup') {
+      const ok = await confirmBox({ title: `解散「${f.name}」？`, message: cats.length ? `裡面的 ${cats.length} 個類別會移回主畫面，品項不會被刪除。` : '', okText: '解散', danger: true });
+      if (!ok) return;
+      for (const c of cats) { c.folderId = null; await dbPut('cats', c); }
+      state.folders = state.folders.filter(x => x.id !== f.id);
+      await dbDel('folders', f.id);
+      closeFolder();
+      renderAll();
+    }
   }
 
   function catHTML(c) {
@@ -1097,6 +1301,7 @@ html, body { margin: 0; background: #fbf1e7; }
     const total = state.items.length;
     const left = state.items.filter(i => !i.done).length;
     $('[data-page="list"] .sl-summary').textContent = total ? (left ? `還有 ${left} 項待買・共 ${total} 項` : `全部 ${total} 項都買齊了 ♡`) : '新增類別開始規劃';
+    if (!openFolderId) refreshFolderTiles();
   }
 
   // 平滑移動動畫（FLIP）
@@ -1122,10 +1327,10 @@ html, body { margin: 0; background: #fbf1e7; }
   }
 
   /* ---------------- 動作：類別 ---------------- */
-  async function addCategory() {
+  async function addCategory(folderId = null) {
     const name = await ask({ title: '新增類別', placeholder: '例如：蔬果、日用品', okText: '新增' });
     if (!name) return;
-    const c = { id: uid(), name, order: (state.cats.length ? Math.max(...state.cats.map(x => x.order)) : 0) + 1, collapsed: false };
+    const c = { id: uid(), name, order: (state.cats.length ? Math.max(...state.cats.map(x => x.order)) : 0) + 1, collapsed: false, folderId };
     state.cats.push(c);
     await dbPut('cats', c);
     renderAll();
@@ -1146,13 +1351,15 @@ html, body { margin: 0; background: #fbf1e7; }
   async function catMenu(catId) {
     const c = catById(catId);
     if (!c) return;
-    const idx = state.cats.indexOf(c);
+    const sibs = state.cats.filter(x => (inFolder(x) ? x.folderId : null) === (inFolder(c) ? c.folderId : null));
+    const idx = sibs.indexOf(c);
     const items = itemsOfCat(catId);
     const doneN = items.filter(i => i.done).length;
     const choice = await actionSheet(c.name, [
       { label: '重新命名', value: 'rename' },
       { label: '往上移', value: 'up', disabled: idx === 0 },
-      { label: '往下移', value: 'down', disabled: idx === state.cats.length - 1 },
+      { label: '往下移', value: 'down', disabled: idx === sibs.length - 1 },
+      { label: inFolder(c) ? `移到其他資料夾／移出（目前：${folderById(c.folderId).name}）` : '移到資料夾', value: 'folder' },
       { label: '全部取消勾選', value: 'uncheck', disabled: !doneN },
       { label: `清除已完成（${doneN}）`, value: 'clear', danger: true, disabled: !doneN },
       { label: '刪除類別', value: 'delete', danger: true }
@@ -1167,12 +1374,13 @@ html, body { margin: 0; background: #fbf1e7; }
       $(`.sl-cat[data-cat="${catId}"] .sl-cat-name`).textContent = name;
     }
     if (choice === 'up' || choice === 'down') {
-      const other = state.cats[idx + (choice === 'up' ? -1 : 1)];
+      const other = sibs[idx + (choice === 'up' ? -1 : 1)];
       [c.order, other.order] = [other.order, c.order];
       state.cats.sort((a, b) => a.order - b.order);
       await Promise.all([dbPut('cats', c), dbPut('cats', other)]);
       renderAll();
     }
+    if (choice === 'folder') moveCatToFolder(catId);
     if (choice === 'uncheck') {
       items.forEach(i => { if (i.done) { i.done = false; i.doneAt = null; dbPut('items', i); } });
       renderItems(catId, true);
@@ -1555,6 +1763,11 @@ html, body { margin: 0; background: #fbf1e7; }
   }
 
   const KIND = {
+    folder: {
+      field: 'folderId', store: 'folders', list: () => state.folders,
+      title: '移到資料夾', ask: n => `「${n}」要放進哪個資料夾？`,
+      placeholder: '新增資料夾，例如：便利商店', removeText: '移出資料夾'
+    },
     price: {
       field: 'groupId', store: 'groups', list: () => state.groups,
       title: '選擇比價群組', ask: n => `「${n}」要和哪些商品一起比價？`,
@@ -1566,7 +1779,7 @@ html, body { margin: 0; background: #fbf1e7; }
       placeholder: '新增群組，例如：衛生紙', removeText: '移出規格比較'
     }
   };
-  const itemsIn = (kind, gid) => state.items.filter(i => i[KIND[kind].field] === gid);
+  const itemsIn = (kind, gid) => (kind === 'folder' ? state.cats : state.items).filter(i => i[KIND[kind].field] === gid);
 
   function pickGroup(it, kind = 'price') {
     const cfg = KIND[kind];
@@ -2460,7 +2673,7 @@ html, body { margin: 0; background: #fbf1e7; }
       }
       const data = {
         app: BACKUP_APP, version: BACKUP_VER, exportedAt: new Date().toISOString(),
-        cats: state.cats, items: state.items, groups: state.groups, specGroups: state.specGroups, images
+        cats: state.cats, items: state.items, groups: state.groups, specGroups: state.specGroups, folders: state.folders, images
       };
       const file = new File([JSON.stringify(data)], `購物清單備份_${today()}.json`, { type: 'application/json' });
       toast('備份已準備好', 1200);
@@ -2757,16 +2970,17 @@ html, body { margin: 0; background: #fbf1e7; }
       blob: im.blob ? dataURLToBlob(im.blob) : null,
       thumb: im.thumb ? dataURLToBlob(im.thumb) : null
     });
-    let cats = data.cats, items = data.items, groups = data.groups || [], specGroups = data.specGroups || [];
+    let cats = data.cats, items = data.items, groups = data.groups || [], specGroups = data.specGroups || [], folders = data.folders || [];
     let images = (data.images || []).filter(im => im && im.id && (im.blob || im.thumb));
     if (mode === 'replace') {
-      for (const st of ['cats', 'items', 'images', 'groups', 'specGroups']) await dbClear(st);
+      for (const st of ['cats', 'items', 'images', 'groups', 'specGroups', 'folders']) await dbClear(st);
     } else {
       const has = (arr, id) => arr.some(x => x.id === id);
       cats = cats.filter(c => !has(state.cats, c.id));
       items = items.filter(i => !has(state.items, i.id));
       groups = groups.filter(g => !has(state.groups, g.id));
       specGroups = specGroups.filter(g => !has(state.specGroups, g.id));
+      folders = folders.filter(f => !has(state.folders, f.id));
       const need = new Set(items.flatMap(i => i.images || []));
       images = images.filter(im => need.has(im.id));
     }
@@ -2775,11 +2989,13 @@ html, body { margin: 0; background: #fbf1e7; }
     await dbBulkPut('items', items);
     await dbBulkPut('groups', groups);
     await dbBulkPut('specGroups', specGroups);
+    await dbBulkPut('folders', folders);
 
     // 重新載入畫面
     urlCache.forEach(u => URL.revokeObjectURL(u));
     urlCache.clear();
-    const [c2, i2, g2, s2] = await Promise.all([dbAll('cats'), dbAll('items'), dbAll('groups'), dbAll('specGroups')]);
+    const [c2, i2, g2, s2, f2] = await Promise.all([dbAll('cats'), dbAll('items'), dbAll('groups'), dbAll('specGroups'), dbAll('folders')]);
+    state.folders = f2.sort((a, b) => a.order - b.order);
     state.cats = c2.sort((a, b) => a.order - b.order);
     state.items = i2;
     state.groups = g2.sort((a, b) => a.order - b.order);
@@ -2981,6 +3197,11 @@ html, body { margin: 0; background: #fbf1e7; }
     const li = el.closest('.sl-item');
     switch (el.dataset.act) {
       case 'add-cat': addCategory(); break;
+      case 'add-folder': addFolder(); break;
+      case 'open-folder': openFolder(el.dataset.folder); break;
+      case 'close-folder': closeFolder(); break;
+      case 'folder-menu': folderMenu(); break;
+      case 'add-cat-folder': addCategory(openFolderId); break;
       case 'data-menu': dataMenu(); break;
       case 'add-item': submitAddRow(el.closest('.sl-add')); break;
       case 'compare': compareFlow(li.dataset.id); break;
@@ -3085,7 +3306,8 @@ html, body { margin: 0; background: #fbf1e7; }
       setTimeout(() => toast('預覽模式：資料不會被保存', 3500), 300);
     }
     try {
-      const [cats, items, groups, specGroups] = await Promise.all([dbAll('cats'), dbAll('items'), dbAll('groups'), dbAll('specGroups')]);
+      const [cats, items, groups, specGroups, folders] = await Promise.all([dbAll('cats'), dbAll('items'), dbAll('groups'), dbAll('specGroups'), dbAll('folders')]);
+      state.folders = folders.sort((a, b) => a.order - b.order);
       state.groups = groups.sort((a, b) => a.order - b.order);
       state.specGroups = specGroups.sort((a, b) => a.order - b.order);
       state.cats = cats.sort((a, b) => a.order - b.order);
