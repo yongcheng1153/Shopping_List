@@ -325,8 +325,25 @@ html, body { margin: 0; background: #fbf1e7; }
 
 /* ---------- 全螢幕看圖 ---------- */
 .sl-photo-acts { display: flex; gap: 14px; }
+/* ---------- 拖曳排序 ---------- */
+.sl-drag {
+  flex: none; width: 40px; height: 44px; display: grid; place-items: center; color: var(--sub);
+  cursor: grab; touch-action: none; -webkit-user-select: none; user-select: none; border-radius: 12px;
+}
+.sl-drag:active { cursor: grabbing; background: var(--fill); }
+.sl-cat.dragging {
+  position: fixed; z-index: 30; margin: 0; pointer-events: none;
+  transform: scale(1.03) rotate(-.6deg); box-shadow: 0 18px 40px rgba(110, 66, 40, .28); opacity: .96;
+  transition: transform .15s, box-shadow .15s;
+}
+.sl-sgroup .sl-drag { width: 30px; }
+.sl-cat.dragging.over-folder { transform: scale(.6); opacity: .7; }
+.sl-drag-ph { flex: none; border-radius: 20px; border: 2px dashed var(--accent-2); background: color-mix(in srgb, var(--chip) 50%, transparent); }
+.sl-folder.drop .sl-folder-box { transform: scale(1.1); border-color: var(--accent-2); box-shadow: 0 0 0 4px color-mix(in srgb, var(--accent-2) 45%, transparent), 0 10px 24px rgba(139,90,60,.2); }
+body.sl-dragging, body.sl-dragging * { -webkit-user-select: none !important; user-select: none !important; }
+
 /* ---------- 資料夾（iPhone 風格） ---------- */
-.sl-folders { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px 12px; padding: 2px 4px 6px; }
+.sl-folders { display: grid; grid-template-columns: repeat(auto-fill, minmax(100px, 1fr)); gap: 16px 12px; padding: 2px 4px 6px; }
 .sl-folder { display: flex; flex-direction: column; align-items: center; gap: 7px; min-width: 0; }
 .sl-folder:active .sl-folder-box { transform: scale(.94); }
 .sl-folder-box {
@@ -1230,6 +1247,9 @@ html, body { margin: 0; background: #fbf1e7; }
           <button class="sl-cat-toggle" data-act="collapse" aria-expanded="${!c.collapsed}">
             ${ICON.chev}<span class="sl-cat-dot">${ICON.bag}</span><span class="sl-cat-name">${esc(c.name)}</span><span class="sl-count"></span>
           </button>
+          <span class="sl-drag" role="button" aria-label="按住拖曳調整「${esc(c.name)}」的順序">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg>
+          </span>
           <button class="sl-icon-btn" data-act="cat-menu" aria-label="類別選項">${ICON.more}</button>
         </div>
         <div class="sl-progress"><i></i></div>
@@ -1351,14 +1371,10 @@ html, body { margin: 0; background: #fbf1e7; }
   async function catMenu(catId) {
     const c = catById(catId);
     if (!c) return;
-    const sibs = state.cats.filter(x => (inFolder(x) ? x.folderId : null) === (inFolder(c) ? c.folderId : null));
-    const idx = sibs.indexOf(c);
     const items = itemsOfCat(catId);
     const doneN = items.filter(i => i.done).length;
     const choice = await actionSheet(c.name, [
       { label: '重新命名', value: 'rename' },
-      { label: '往上移', value: 'up', disabled: idx === 0 },
-      { label: '往下移', value: 'down', disabled: idx === sibs.length - 1 },
       { label: inFolder(c) ? `移到其他資料夾／移出（目前：${folderById(c.folderId).name}）` : '移到資料夾', value: 'folder' },
       { label: '全部取消勾選', value: 'uncheck', disabled: !doneN },
       { label: `清除已完成（${doneN}）`, value: 'clear', danger: true, disabled: !doneN },
@@ -1372,13 +1388,6 @@ html, body { margin: 0; background: #fbf1e7; }
       c.name = name;
       await dbPut('cats', c);
       $(`.sl-cat[data-cat="${catId}"] .sl-cat-name`).textContent = name;
-    }
-    if (choice === 'up' || choice === 'down') {
-      const other = sibs[idx + (choice === 'up' ? -1 : 1)];
-      [c.order, other.order] = [other.order, c.order];
-      state.cats.sort((a, b) => a.order - b.order);
-      await Promise.all([dbPut('cats', c), dbPut('cats', other)]);
-      renderAll();
     }
     if (choice === 'folder') moveCatToFolder(catId);
     if (choice === 'uncheck') {
@@ -1959,6 +1968,7 @@ html, body { margin: 0; background: #fbf1e7; }
             <span class="sl-cat-name">${esc(g.name)}</span>
             <span class="sl-count">${ms.length} 項</span>
           </div>
+          <span class="sl-drag" role="button" aria-label="按住拖曳調整「${esc(g.name)}」的順序"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg></span>
           <button class="sl-icon-btn" data-act="group-menu" aria-label="群組選項">${ICON.more}</button>
         </div>
         ${bestM ? `
@@ -2347,6 +2357,7 @@ html, body { margin: 0; background: #fbf1e7; }
             </label>
           </div>
           <button class="sl-unit-chip${g.unit ? ' set' : ''}" data-act="set-unit">${g.unit ? '單位：' + esc(g.unit) : '＋單位'}</button>
+          <span class="sl-drag" role="button" aria-label="按住拖曳調整「${esc(g.name)}」的順序"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.7"/><circle cx="15" cy="6" r="1.7"/><circle cx="9" cy="12" r="1.7"/><circle cx="15" cy="12" r="1.7"/><circle cx="9" cy="18" r="1.7"/><circle cx="15" cy="18" r="1.7"/></svg></span>
           <button class="sl-icon-btn" data-act="spec-group-menu" aria-label="群組選項">${ICON.more}</button>
         </div>
         <div class="sl-g-best" hidden></div>
@@ -3169,6 +3180,111 @@ html, body { margin: 0; background: #fbf1e7; }
       toast('裁切失敗，請再試一次');
     }
   }
+
+  /* ---------------- 拖曳排序（類別、比價群組、規格群組） ---------------- */
+  // 按住標題右側的把手上下拖曳；類別在主畫面拖到資料夾圖示上可直接放進資料夾
+  let drag2 = null;
+  root.addEventListener('pointerdown', e => {
+    const h = e.target.closest('.sl-drag');
+    if (!h || drag2) return;
+    const sec = h.closest('.sl-cat');
+    const box = sec && sec.parentElement;
+    if (!sec || !box) return;
+    e.preventDefault();
+    const r = sec.getBoundingClientRect();
+    const ph = document.createElement('div');
+    ph.className = 'sl-drag-ph';
+    ph.style.height = r.height + 'px';
+    box.insertBefore(ph, sec);
+    Object.assign(sec.style, { width: r.width + 'px', left: r.left + 'px', top: r.top + 'px' });
+    sec.classList.add('dragging');
+    document.body.classList.add('sl-dragging');
+    drag2 = {
+      sec, ph, box, pid: e.pointerId, offY: e.clientY - r.top, y: e.clientY, x: e.clientX,
+      scroller: box.classList.contains('sl-fpanel-body') ? box : null, folder: null, raf: 0
+    };
+    try { h.setPointerCapture(e.pointerId); } catch (err) {}
+    drag2.raf = requestAnimationFrame(dragTick);
+  });
+  root.addEventListener('pointermove', e => {
+    if (!drag2 || e.pointerId !== drag2.pid) return;
+    drag2.x = e.clientX; drag2.y = e.clientY;
+    drag2.sec.style.top = (e.clientY - drag2.offY) + 'px';
+    placePlaceholder();
+  });
+  function placePlaceholder() {
+    const { box, ph, sec, y, x } = drag2;
+    // 主畫面：是否停在資料夾圖示上
+    let folderEl = null;
+    if (!drag2.scroller && sec.dataset.cat) {
+      const hit = document.elementFromPoint(x, y);
+      folderEl = hit && hit.closest('.sl-folder');
+    }
+    if (folderEl !== drag2.folder) {
+      if (drag2.folder) drag2.folder.classList.remove('drop');
+      if (folderEl) folderEl.classList.add('drop');
+      drag2.folder = folderEl;
+      sec.classList.toggle('over-folder', !!folderEl);
+    }
+    if (folderEl) return;
+    const cards = [...box.children].filter(el => el.classList.contains('sl-cat') && el !== sec);
+    const target = cards.find(el => { const r = el.getBoundingClientRect(); return y < r.top + r.height / 2; });
+    if (target) { if (ph.nextElementSibling !== target) box.insertBefore(ph, target); }
+    else {
+      const last = cards[cards.length - 1];
+      const after = last ? last.nextElementSibling : null;
+      if (last && ph !== after) box.insertBefore(ph, after === sec ? sec.nextElementSibling : after);
+    }
+  }
+  // 拖到畫面上下邊緣時自動捲動
+  function dragTick() {
+    if (!drag2) return;
+    const { y, scroller } = drag2;
+    const top = scroller ? scroller.getBoundingClientRect().top : 0;
+    const bottom = scroller ? scroller.getBoundingClientRect().bottom : window.innerHeight;
+    const edge = 90;
+    let dy = 0;
+    if (y < top + edge) dy = -Math.ceil((top + edge - y) / 8);
+    else if (y > bottom - edge - (scroller ? 0 : 70)) dy = Math.ceil((y - (bottom - edge - (scroller ? 0 : 70))) / 8);
+    if (dy) { if (scroller) scroller.scrollTop += dy; else window.scrollBy(0, dy); placePlaceholder(); }
+    drag2.raf = requestAnimationFrame(dragTick);
+  }
+  async function endCatDrag(e) {
+    if (!drag2 || (e && e.pointerId !== drag2.pid)) return;
+    const { sec, ph, box, folder } = drag2;
+    cancelAnimationFrame(drag2.raf);
+    drag2 = null;
+    document.body.classList.remove('sl-dragging');
+    sec.classList.remove('dragging', 'over-folder');
+    Object.assign(sec.style, { width: '', left: '', top: '' });
+    const c = catById(sec.dataset.cat);
+    if (folder && c) {
+      folder.classList.remove('drop');
+      ph.remove();
+      c.folderId = folder.dataset.folder;
+      await dbPut('cats', c);
+      renderAll();
+      toast(`已放進「${folderById(c.folderId).name}」`);
+      return;
+    }
+    box.insertBefore(sec, ph);
+    ph.remove();
+    // 依新的畫面順序重新排序（類別只調整同一層；比價／規格群組各自排序）
+    const kind = sec.dataset.cat ? { arr: 'cats', key: 'cat', find: catById }
+      : sec.dataset.group ? { arr: 'groups', key: 'group', find: groupById }
+      : { arr: 'specGroups', key: 'sgroup', find: specGroupById };
+    const list = [...box.children].filter(el => el.classList.contains('sl-cat')).map(el => kind.find(el.dataset[kind.key])).filter(Boolean);
+    const orders = list.map(x => x.order).sort((a, b) => a - b);
+    let changed = false;
+    list.forEach((x, k) => { if (x.order !== orders[k]) { x.order = orders[k]; changed = true; } });
+    if (changed) {
+      state[kind.arr].sort((a, b) => a.order - b.order);
+      await dbBulkPut(kind.arr, list);
+      if (kind.arr === 'cats') renderCompare();
+    }
+  }
+  root.addEventListener('pointerup', endCatDrag);
+  root.addEventListener('pointercancel', endCatDrag);
 
   /* ---------------- 底部 Tab Bar ---------------- */
   const scrollMemo = {};
